@@ -1,6 +1,6 @@
 <mxfile host="app.diagrams.net" agent="Mozilla/5.0 (Android 14; Mobile; rv:137.0) Gecko/137.0 Firefox/137.0" version="26.2.13">
   <diagram name="Seite-1" id="y3MJJBDZhsTPdLoHuAxF">
-    <mxGraphModel dx="1055" dy="1195" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="0" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+    <mxGraphModel dx="1844" dy="2628" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="0" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
@@ -50,13 +50,8 @@
         <mxCell id="m9zUZ1Lg18Eu3ri2YqXy-16" value="Context / Input Tokens" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=14;" parent="m9zUZ1Lg18Eu3ri2YqXy-17" vertex="1">
           <mxGeometry x="7" y="10" width="108" height="47" as="geometry" />
         </mxCell>
-        <mxCell id="ZymioOZfMtlw0mIFjvsn-13" style="edgeStyle=none;curved=1;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;fontSize=12;startSize=8;endSize=8;labelBorderColor=none;dashed=1;dashPattern=8 8;startArrow=classic;startFill=1;" parent="1" source="uyWJcSpB3KEF8Vx4lBki-2" target="ZymioOZfMtlw0mIFjvsn-6" edge="1">
+        <mxCell id="ZymioOZfMtlw0mIFjvsn-13" style="edgeStyle=none;curved=1;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;fontSize=12;startSize=8;endSize=8;labelBorderColor=none;dashed=1;dashPattern=8 8;startArrow=none;startFill=0;" parent="1" source="uyWJcSpB3KEF8Vx4lBki-2" target="ZymioOZfMtlw0mIFjvsn-6" edge="1">
           <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-        <mxCell id="D425Ie-_kS6H3i_HssFN-10" style="edgeStyle=none;curved=1;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=12;startSize=8;endSize=8;entryX=0;entryY=0.5;entryDx=0;entryDy=0;dashed=1;dashPattern=8 8;" edge="1" parent="1" source="uyWJcSpB3KEF8Vx4lBki-2" target="D425Ie-_kS6H3i_HssFN-3">
-          <mxGeometry relative="1" as="geometry">
-            <mxPoint x="576" y="415.2924033717105" as="targetPoint" />
-          </mxGeometry>
         </mxCell>
         <mxCell id="uyWJcSpB3KEF8Vx4lBki-2" value="" style="swimlane;startSize=0;" parent="1" vertex="1">
           <mxGeometry x="443" y="240" width="266" height="134" as="geometry" />
@@ -75,6 +70,13 @@
         </mxCell>
         <mxCell id="ZymioOZfMtlw0mIFjvsn-1" value="&lt;font&gt;&lt;b&gt;App&lt;/b&gt;&lt;/font&gt;" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=42;" parent="1" vertex="1">
           <mxGeometry x="222" y="59" width="312" height="103" as="geometry" />
+        </mxCell>
+        <mxCell id="D425Ie-_kS6H3i_HssFN-17" style="edgeStyle=none;curved=1;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;fontSize=12;startSize=8;endSize=8;dashed=1;dashPattern=8 8;" edge="1" parent="1" source="ZymioOZfMtlw0mIFjvsn-6" target="D425Ie-_kS6H3i_HssFN-3">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="973" y="558" />
+            </Array>
+          </mxGeometry>
         </mxCell>
         <mxCell id="ZymioOZfMtlw0mIFjvsn-6" value="" style="swimlane;startSize=0;" parent="1" vertex="1">
           <mxGeometry x="821" y="215" width="291" height="178" as="geometry" />
@@ -105,6 +107,29 @@
         </mxCell>
         <mxCell id="D425Ie-_kS6H3i_HssFN-11" value="&lt;div&gt;&lt;font style=&quot;font-size: 14px;&quot;&gt;Item2={type:&quot;hat&quot;, store:&quot;h&amp;amp;m&quot;, style:&quot;modern...&quot;,link:&quot;h&amp;amp;m.com/hat2&quot;}&lt;/font&gt;&lt;/div&gt;" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" vertex="1" parent="D425Ie-_kS6H3i_HssFN-3">
           <mxGeometry x="1.25" y="75" width="472.5" height="17" as="geometry" />
+        </mxCell>
+        <mxCell id="D425Ie-_kS6H3i_HssFN-19" style="edgeStyle=none;curved=1;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;fontSize=12;startSize=8;endSize=8;" edge="1" parent="1" source="D425Ie-_kS6H3i_HssFN-18" target="m9zUZ1Lg18Eu3ri2YqXy-12">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="-293" y="159" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="D425Ie-_kS6H3i_HssFN-20" style="edgeStyle=none;curved=1;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;fontSize=12;startSize=8;endSize=8;" edge="1" parent="1" target="m9zUZ1Lg18Eu3ri2YqXy-5">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="-194" y="436" as="sourcePoint" />
+            <Array as="points">
+              <mxPoint x="-186" y="398" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="D425Ie-_kS6H3i_HssFN-18" value="" style="shape=mxgraph.cisco.people.sitting_woman;html=1;pointerEvents=1;dashed=0;fillColor=#036897;strokeColor=#ffffff;strokeWidth=2;verticalLabelPosition=bottom;verticalAlign=top;align=center;outlineConnect=0;" vertex="1" parent="1">
+          <mxGeometry x="-310" y="459.5" width="158" height="196" as="geometry" />
+        </mxCell>
+        <mxCell id="D425Ie-_kS6H3i_HssFN-21" style="edgeStyle=none;curved=1;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=12;startSize=8;endSize=8;dashed=1;dashPattern=8 8;" edge="1" parent="1" source="D425Ie-_kS6H3i_HssFN-3">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="-136" y="562" as="targetPoint" />
+          </mxGeometry>
         </mxCell>
       </root>
     </mxGraphModel>
