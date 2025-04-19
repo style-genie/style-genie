@@ -1,6 +1,6 @@
 <mxfile host="app.diagrams.net" agent="Mozilla/5.0 (Android 14; Mobile; rv:137.0) Gecko/137.0 Firefox/137.0" version="26.2.13">
   <diagram name="Seite-1" id="y3MJJBDZhsTPdLoHuAxF">
-    <mxGraphModel dx="1844" dy="2628" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="0" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+    <mxGraphModel dx="1303" dy="2043" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="0" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
@@ -54,7 +54,7 @@
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
         <mxCell id="uyWJcSpB3KEF8Vx4lBki-2" value="" style="swimlane;startSize=0;" parent="1" vertex="1">
-          <mxGeometry x="443" y="240" width="266" height="134" as="geometry" />
+          <mxGeometry x="443" y="240" width="266" height="137" as="geometry" />
         </mxCell>
         <mxCell id="uyWJcSpB3KEF8Vx4lBki-10" value="Backend API with Fastapi" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=14;fontStyle=1" parent="uyWJcSpB3KEF8Vx4lBki-2" vertex="1">
           <mxGeometry x="9" y="9" width="169" height="61.63" as="geometry" />
@@ -69,7 +69,7 @@
           <mxGeometry x="193" y="14.629999999999995" width="56" height="56" as="geometry" />
         </mxCell>
         <mxCell id="ZymioOZfMtlw0mIFjvsn-1" value="&lt;font&gt;&lt;b&gt;App&lt;/b&gt;&lt;/font&gt;" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=42;" parent="1" vertex="1">
-          <mxGeometry x="222" y="59" width="312" height="103" as="geometry" />
+          <mxGeometry x="-35" y="-66" width="312" height="103" as="geometry" />
         </mxCell>
         <mxCell id="D425Ie-_kS6H3i_HssFN-17" style="edgeStyle=none;curved=1;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;fontSize=12;startSize=8;endSize=8;dashed=1;dashPattern=8 8;" edge="1" parent="1" source="ZymioOZfMtlw0mIFjvsn-6" target="D425Ie-_kS6H3i_HssFN-3">
           <mxGeometry relative="1" as="geometry">
@@ -130,6 +130,21 @@
           <mxGeometry relative="1" as="geometry">
             <mxPoint x="-136" y="562" as="targetPoint" />
           </mxGeometry>
+        </mxCell>
+        <mxCell id="D425Ie-_kS6H3i_HssFN-22" value="" style="swimlane;startSize=0;" vertex="1" parent="1">
+          <mxGeometry x="350" y="-213" width="203" height="217" as="geometry" />
+        </mxCell>
+        <mxCell id="D425Ie-_kS6H3i_HssFN-23" value="&lt;h1 dir=&quot;auto&quot; class=&quot;heading-element&quot; tabindex=&quot;-1&quot;&gt;í ½íµ·ï¸ Scrapgraph&lt;/h1&gt;" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" vertex="1" parent="D425Ie-_kS6H3i_HssFN-22">
+          <mxGeometry x="8" y="14" width="180" height="42" as="geometry" />
+        </mxCell>
+        <mxCell id="D425Ie-_kS6H3i_HssFN-25" value="&lt;div align=&quot;left&quot;&gt;Scrapes fashion stores for images, descriptions, ean numbers, etc&lt;/div&gt;" style="text;html=1;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;" vertex="1" parent="D425Ie-_kS6H3i_HssFN-22">
+          <mxGeometry x="18" y="53" width="160" height="87.5" as="geometry" />
+        </mxCell>
+        <mxCell id="D425Ie-_kS6H3i_HssFN-29" value="&lt;div&gt;Deployed on Hugging face&lt;/div&gt;&lt;div align=&quot;left&quot;&gt;Compute Instance&lt;/div&gt;" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=14;fontStyle=1" vertex="1" parent="D425Ie-_kS6H3i_HssFN-22">
+          <mxGeometry x="8" y="140.5" width="172" height="52" as="geometry" />
+        </mxCell>
+        <mxCell id="D425Ie-_kS6H3i_HssFN-24" value="" style="swimlane;startSize=0;" vertex="1" parent="1">
+          <mxGeometry x="862" y="-240" width="200" height="200" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>
