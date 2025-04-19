@@ -13,6 +13,7 @@
   - **Image-Based Analysis:**
 
 - **Virtual Try‑On**  
+  - **Virtual Avatar:** Create a personalized avatar from your photo.
   - **Pose‑Aware Warping:** Map garments onto a user’s silhouette using a state‑of‑the‑art try‑on engine.  
   - **Real‑Time Preview:** Instantly see how different pieces look on you.
 
@@ -27,13 +28,13 @@
 | Layer               | Technology                                 |
 |---------------------|--------------------------------------------|
 | **Backend API**     | Python · FastAPI ·                         |
-| **AI Models**       | Hugging Face ??                            |
-| **Vector DB**       | Pinecone                                   |
-| **Object Storage**  | AWS S3 / Azure ??                          |
-| **Database**        |  Appache                                   |
-| **Virtual Try‑On**  |  Flow-Style-VTON                           |
+| **AI Models**       | LLM for creating outfit context            |
+| **Vector Search**   | Pinecone                                   |
+| **Object Storage**  | Appache Ozone (s3 Bucket)                  |
+| **Database**        | Postgres if needed                         |
+| **Virtual Try‑On**  | Flow-Style-VTON                            |
 | **Frontend**        | Next.js · React                            |
-| **DevOps**          | Docker                                     |
+| **DevOps**          | GH Actions                                 |
 
 ---
 
