@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minimal Dashboard</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Fashion Style Recommendation Dashboard</h1>
+        <div class="input-section">
+            <h2>User Input</h2>
+            <label for="prompt">Prompt:</label>
+            <input type="text" id="prompt" name="prompt" placeholder="Enter your prompt here">
+            <label for="image">Image:</label>
+            <input type="file" id="image" name="image">
+        </div>
+        <div class="output-section">
+            <h2>LLM Response</h2>
+            <div id="llm-response"></div>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
