@@ -7,3 +7,10 @@ export interface Style {
     thumbnail: string;
     description: string;
 }
+
+
+export interface StyleInput {
+    prompt: string;
+    emailAddress: string;
+    image: string;
+}
