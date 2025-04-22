@@ -1,11 +1,9 @@
 export interface Style {
-    index: string;
-
+    index?: string;
     title: string;
-
-    categories: string;
+    categories?: string;
     thumbnail: string;
-    description: string;
+    description?: string;
 }
 
 
