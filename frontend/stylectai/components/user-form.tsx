@@ -11,7 +11,7 @@ import Uploader from "./image-uploader";
 
 
 
-const  UserForm =({id,className}:{id:string,className:string})=>{
+const  UserForm =({id,className, returnRecommendations}:{id:string,className:string, returnRecommendations: any})=>{
 
   const [query, setQuery] = useState('');
   const [image,setImage] = useState('');
@@ -22,6 +22,7 @@ const  UserForm =({id,className}:{id:string,className:string})=>{
 
   const onSubmit = (data: StyleInput) => {
     console.log(data);
+    returnRecommendations(data)
   };
 
   const styleValidationSchema = object({
@@ -34,73 +35,50 @@ const  UserForm =({id,className}:{id:string,className:string})=>{
 
 return (
    <>
-      <Form<StyleInput>
-                onSubmit={onSubmit}
-            
-                validationSchema={styleValidationSchema}
-                id={id}
-                className={twMerge(cn("flex flex-grow flex-col", className))}
+      <Form
+            onSubmit={onSubmit}
+            validationSchema={styleValidationSchema}
+            id={id}
+            className={twMerge(cn("flex flex-grow flex-col", className))}
                 >
-                   {({ register, reset, setValue,control, formState: { errors } }) => (
-                    <>
-                     <div className="mb-4">
-            <label
-                htmlFor="favorite-styles"
-                className="block text-gray-700 font-bold mb-2"
-              >
-                What would you like to get a style recommendation on?
-              </label>
-              <Input 
-                type="text"
-                id="favorite-books"
-                name="favorite-books"
-                placeholder="I'd like to learn..."
-                className="block w-full px-4 py-2 border border-gray-300 bg-white rounded-md shadow-sm "
-                value={query}
-                onChange={(e) => {
-                  setQuery(e.target.value);
-                }}
-              />
-              {/* {process.env.NEXT_PUBLIC_COHERE_CONFIGURED && ( */}
-              {/* {true && (
-                <>
-                  <label
-                    htmlFor="interests-input"
-                    className="block text-gray-700 font-bold mb-2 pt-4"
+           {({ register, reset, setValue,control, formState: { errors } }) => (
+            <>
+             <div className="mb-4">
+                <label
+                    htmlFor="favorite-styles"
+                    className="block text-gray-700 font-bold mb-2"
                   >
-                    Your interests and hobbies
-                  </label>
-                  <Input 
+                  What would you like to get a style recommendation on?
+                </label>
+                  <Input
                     type="text"
-                    id="interests-input"
-                    name="interests"
-                    placeholder="Tell us about your hobbies and interests, comma separated..."
+                    id="favorite-books"
+                    name="favorite-books"
+                    placeholder="I'd like to learn..."
                     className="block w-full px-4 py-2 border border-gray-300 bg-white rounded-md shadow-sm "
-                    value={'userInterests'}
+                    value={query}
                     onChange={(e) => {
-                      
+                      setQuery(e.target.value);
                     }}
                   />
-                </>
-              )} */}
-                <Controller
-                                name="image"
-                                control={control}
-                                render={({ field: { ref, ...rest } }) => (
-                                <div className="sm:col-span-2 mt-4">
-                                    {/* <span className="block cursor-pointer pb-2.5 font-normal text-dark/70 dark:text-light/70"> */}
-                                    <label
-                                         htmlFor="favorite-styles"
-                                     className="block text-gray-700 font-bold mb-2"
-                                         >
-                                        Your style image
-                                    </label>
-                                    <div className="text-xs">
-                                       <Uploader {...rest} isLoading={isLoading} multiple={false} value={image} />  
-                                  </div>
-                                </div>
-                                )}
-                />
+                    <Controller
+                        name="image"
+                        control={control}
+                        render={({ field: { ref, ...rest } }) => (
+                                    <div className="sm:col-span-2 mt-4">
+                                        {/* <span className="block cursor-pointer pb-2.5 font-normal text-dark/70 dark:text-light/70"> */}
+                                        <label
+                                             htmlFor="favorite-styles"
+                                         className="block text-gray-700 font-bold mb-2"
+                                             >
+                                            Your style image
+                                        </label>
+                                        <div className="text-xs">
+                                           <Uploader {...rest} isLoading={isLoading} multiple={false} value={image} />
+                                      </div>
+                                    </div>
+                                    )}
+                    />
 
               </div>
                   <Button className="bg-black text-white w-full rounded-md hover:bg-gray-800 hover:text-white" disabled={isLoading} type="submit" variant="outline">
@@ -117,5 +95,3 @@ return (
 }
 
 export default UserForm
-
-
