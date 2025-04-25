@@ -74,14 +74,11 @@ def scrape_ssense(page_number):
                 link = tile.find_element(By.CSS_SELECTOR, "a").get_attribute("href")
                 image_element = tile.find_element(By.CSS_SELECTOR, "source[data-srcset]")
                 image_link = image_element.get_attribute("data-srcset") 
-                
-                # image_element = tile.find_element(By.CSS_SELECTOR, "source[data-srcset]")
-                # image_link = image_element.get_attribute("srcset")
                 print(image_link)
                 price_string = price.replace("\u20ac", "")
-                price_string = price_string.replace(".", "") # Punkt entfernen
-                price_string = price_string.replace(".", "") # Punkt entfernen
-                price_string = price_string.replace(",", ".") # Komma durch Punkt ersetzen (falls Komma als Dezimaltrennzeichen verwendet wird)
+                price_string = price_string.replace(".", "")
+                price_string = price_string.replace(".", "") 
+                price_string = price_string.replace(",", ".") 
                 price_float = float(price_string)
                 # target_url = link
                 # driver.get(target_url)
@@ -96,6 +93,7 @@ def scrape_ssense(page_number):
                     "image": image_link
                 }
                 print(image_link)
+                # downloading the image
                 # try:
                 #     os.makedirs("images", exist_ok=True)
                 #     if image_url.startswith("data:image"):
