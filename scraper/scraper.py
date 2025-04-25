@@ -1,15 +1,24 @@
 import time
+import requests
+import base64
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.action_chains import ActionChains
-from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.firefox.options import Options as FirefoxOptions
+from selenium.webdriver.chrome.options import Options
+import getpass
+from fake_useragent import UserAgent
 import json
 import os
 import tempfile
 import shutil
 import random
-allitems=[]
+from selenium.webdriver import DesiredCapabilities
+# from selenium_recaptcha_solver import RecaptchaSolver
+# import undetected_chromedriver as uc
+allitems = []
+
+
 def get_random_proxy(proxy_list_path):
     with open(proxy_list_path, 'r') as f:
         proxies = json.load(f)
@@ -19,135 +28,125 @@ def get_random_proxy(proxy_list_path):
 
 def scrape_ssense(page_number):
     driver = None
-    temp_dir = tempfile.mkdtemp(prefix="my_temp_dir_")
     try:
-        # Set up Chrome options
-        # chrome_options = Options()
-        # chrome_options.add_argument("--headless")
-        # chrome_options.add_argument("--disable-gpu")
-        proxy_list_path = '/root/StyleRecommendation/fashion_agent/proxies.agent'
+        proxy_list_path = "/home/ji/Dokumente/fashion/StyleRecommendation/scraper/proxies.json"
         proxy_host, proxy_port = get_random_proxy(proxy_list_path)
-
-        # Define custom options for the Selenium driver
-        options = Options()
-        proxy_server_url = f"https://{proxy_host}:{proxy_port}"
-        print("proxy" + proxy_server_url)
+        print(f"using proxy: {proxy_host}")
+        # Use Firefox Options
+        ua = UserAgent()
         firefox_options = FirefoxOptions()
-        firefox_options.add_argument("--headless")  # Optional: Headless Modus
-        options.add_argument(f'--proxy-server={proxy_server_url}')
-
-        temp_user_data_dir = tempfile.mkdtemp(prefix="chrome-user-data-")
-        # chrome_options.add_argument(f"--user-data-dir={temp_user_data_dir}")
-
-    
-        # driver = webdriver.Chrome(options=chrome_options)
-        driver = webdriver.Firefox(options=firefox_options)
-        # if os.path.exists("/scrape/ssense-chrome-user-data"):
-        #     shutil.rmtree("/scrape/ssense-user-data") #Das Verzeichnis muss leer sein, chrome-user-data
-        #     os.makedirs("/scrape/ssense-chrome-user-data")
-
-        # Path to the ChromeDriver executable (replace with your actual path)
-        chromedriver_path = "/usr/bin/chromedriver"  # Replace with the correct path
-
-        # Set up the webdriver
-        try:
-            driver = webdriver.Chrome(options=firefox_options)
-        except Exception as e:
-            print(f"Error setting up webdriver: {e}")
-            return
-
-        # URL to scrape
-        #target_url = 'https://www.ssense.com/en-de/men/sale'
-        target_url = f'https://www.ssense.com/en-de/men/sale?page={page_number}'
+        #firefox_options.add_argument("--headless")
+        firefox_options.add_argument(f'user-agent={ua.random}')
+        firefox_options.set_preference("network.proxy.type", 1)
+        firefox_options.set_preference("network.proxy.http", proxy_host)
+        firefox_options.set_preference("network.proxy.http_port", int(proxy_port))
+        firefox_options.add_argument('--no-sandbox')
+        firefox_options.add_argument("--disable-extensions")
+        # profile = webdriver.FirefoxProfile()
+        # profile.set_preference("general.useragent.override", ua.random)
+        # profile.set_preference("accept-language", "de-DE,de;q=0.9,en-US;q=0.8,en;q=0.7")
+        firefox_options.set_preference('acceptInsecureCerts', True) #Richtiger Code
+        driver = webdriver.Firefox(options=firefox_options)#, firefox_profile=profile)
+        # options = Options()
+        # options.add_argument("--headless")  # Remove this if you want to see the browser (Headless makes the chromedriver not have a GUI)
+        # options.add_argument("--window-size=1920,1080")
+        # options.add_argument(f'--user-agent={ua}')
+        # options.add_argument('--no-sandbox')
+        # options.add_argument("--disable-extensions")
+        # driver = uc.Chrome(headless=True,use_subprocess=False, port=9222, options=options)
+        target_url = f'https://www.ssense.com/en-de/men?page={page_number}'
+        # solver = RecaptchaSolver(driver=driver)
+        # Check for CAPTCHA
         driver.get(target_url)
         driver.maximize_window()
-
-        # Check for CAPTCHA
-        try:
-            driver.get(target_url)
-            driver.maximize_window()
-
-            element = driver.find_element_by_css_selector('#px-captcha')
-            action = ActionChains(driver)
-            action.click_and_hold(element)
-            action.perform()
-            time.sleep(10)
-            action.release(element)
-            action.perform()
-            time.sleep(0.2)
-            action.release(element)
-            
-            # element = driver.find_element(By.CSS_SELECTOR, '#px-captcha')
-            # action = ActionChains(driver)
-            # action.click_and_hold(element).perform()
-            # time.sleep(10)
-            # action.release(element).perform()
-            # time.sleep(0.2)
-            # action.release(element).perform()
-        except:
-            print("No CAPTCHA found")
-
-        time.sleep(5)  # Wait for the page to load after CAPTCHA
-
-        # Find all product tiles
+        html = driver.page_source
+        # with open("ssense.html", "w") as f:
+        #     f.write(html)
+        print("HTML saved to ssense.html")
+        # time.sleep(5)  # Wait for the page to load after CAPTCHA
         product_tiles = driver.find_elements(By.CSS_SELECTOR, "div.plp-products__product-tile")
-
-        # Extract data from each product tile
         items = []
         for tile in product_tiles:
-            try:
+                # time.sleep(10)
                 title = tile.find_element(By.CSS_SELECTOR, "span[data-test^='productName']").text
                 brand = tile.find_element(By.CSS_SELECTOR, "span[data-test^='productBrandName']").text
                 price = tile.find_element(By.CSS_SELECTOR, "span[data-test^='productCurrentPrice']").text.replace(u'\\u20ac', u'€')
                 link = tile.find_element(By.CSS_SELECTOR, "a").get_attribute("href")
+                image_element = tile.find_element(By.CSS_SELECTOR, "source[data-srcset]")
+                image_link = image_element.get_attribute("data-srcset") 
+                
+                # image_element = tile.find_element(By.CSS_SELECTOR, "source[data-srcset]")
+                # image_link = image_element.get_attribute("srcset")
+                print(image_link)
                 price_string = price.replace("\u20ac", "")
-
-                # Tausendertrennzeichen entfernen/ersetzen (falls vorhanden)
+                price_string = price_string.replace(".", "") # Punkt entfernen
                 price_string = price_string.replace(".", "") # Punkt entfernen
                 price_string = price_string.replace(",", ".") # Komma durch Punkt ersetzen (falls Komma als Dezimaltrennzeichen verwendet wird)
-
-
-                # In Float umwandeln
                 price_float = float(price_string)
+                # target_url = link
+                # driver.get(target_url)
+                # driver.maximize_window()
+                # driver.save_screenshot('nowsecure.png')
+                # description = driver.find_element(By.CSS_SELECTOR, 'meta[name="description"]').get_attribute("content")
                 item = {
                     "name": title,
                     "brand": brand,
                     "price": price_float,
-                    "link": link
+                    "link": link,
+                    "image": image_link
                 }
-                print(json.dumps(item, indent=2))
+                print(image_link)
+                # try:
+                #     os.makedirs("images", exist_ok=True)
+                #     if image_url.startswith("data:image"):
+                #         # Handle base64 encoded images
+                #         image_data = image_url.split(",")[1]
+                #         item["image"] = image_path
+                #         print(f"Downloaded image to {image_path}")
+                #     else:
+                #         # Handle regular image URLs
+                #         image_name = image_url.split("/")[-1]
+                #         # Extract image extension from URL
+                #         image_extension = image_name.split(".")[-1]
+                #         image_path = os.path.join("images", image_name)
+                #         response = requests.get(image_url, stream=True)
+                #         if response.status_code == 200:
+                #             with open(image_path, 'wb') as f:
+                #                 shutil.copyfileobj(response.raw, f)
+                #             item["image"] = image_path  # Store the relative path
+                #             print(f"Downloaded image to {image_path}")
+                #         else:
+                #             print(f"Failed to download image from {image_url}")
+                # except Exception as e:
+                #     print(f"Error downloading image: {e}")
 
-                allitems.append(item)
-            except Exception as e:
-                print(f"Error extracting data from tile: {e}")
-
-        # Print the extracted data as JSON
-       
-
-    except Exception as e:
-        print(f"Error during scraping: {e}")
+                items.append(item)
+                print(item)
+        try:
+            with open(f'./men_output_{page_number}.json', "w") as outfile:
+                json.dump(items, outfile, indent=2)
+            print("Data written to men_output.json")
+        except Exception as e:
+            print(f"Error writing to output.json: {e}")
+        allitems.extend(items)
+        print(items)
 
     finally:
-        # Close the browser
         if driver:
-            driver.quit()
+            pass
+            #driver.quit()
 
-# if __name__ == "__main__":
-#     scrape_ssense()
+
 if __name__ == "__main__":
     page_number = 1
-    while page_number<2:
-        print(f"Scraping page {page_number}...")
-        items = scrape_ssense(page_number)
-        if items is None:
-            break
-        page_number += 1
-
-    # Print the extracted data as JSON
-    print(json.dumps(allitems, indent=2))
-    try:
-        with open("./output.json", "w") as outfile:
-            json.dump(allitems, outfile, indent=2)
-        print("Data written to output.json")
-    except Exception as e:
-        print(f"Error writing to output.json: {e}")
+    #while page_number<2:
+    print(f"Scraping page {page_number}...")
+    scrape_ssense(page_number)
+        # print(json.dumps(allitems, indent=2))
+    #page_number += 1
+    # try:
+    #     with open("./output.json", "w") as outfile:
+    #         json.dump(allitems, outfile, indent=2)
+    #     print("Data written to output.json")
+    # except Exception as e:
+    #     print(f"Error writing to output.json: {e}")
