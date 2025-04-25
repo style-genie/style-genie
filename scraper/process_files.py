@@ -18,7 +18,8 @@ def extract_metadata(filename):
 
 def process_json_files(directory):
     """Processes JSON files in a directory and combines them into a single JSON file."""
-    combined_data = []
+    combined_data = {}
+    item_id = 0
     for filename in os.listdir(directory):
         if filename.endswith(".json") and (filename.startswith("women_output") or filename.startswith("men_output")):
             filepath = os.path.join(directory, filename)
@@ -29,7 +30,9 @@ def process_json_files(directory):
                     for item in data:
                         item["gender"] = gender
                         item["chunk"] = chunk
-                        combined_data.append(item)
+                        item_id += 1
+                        item["id"] = item_id
+                        combined_data[item_id] = item
             except json.JSONDecodeError as e:
                 print(f"Error decoding JSON in {filename}: {e}")
             except Exception as e:
