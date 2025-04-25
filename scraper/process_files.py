@@ -31,6 +31,7 @@ def process_json_files(directory):
                         item["gender"] = gender
                         item["chunk"] = chunk
                         item_id += 1
+                        item["_id"] = item_id
                         item["id"] = item_id
                         combined_data[item_id] = item
             except json.JSONDecodeError as e:
