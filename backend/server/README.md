@@ -64,7 +64,7 @@ uvicorn src.main:app --reload
 
 Access the interactive API documentation at `http://localhost:8000/docs`
 
-### Deploy to VM with Docker
+### Deploy with Docker
 
 Ensure Docker daemon is running on your machine.
 
