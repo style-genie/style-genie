@@ -1,0 +1,12 @@
+
+# Python
+.venv
+__pychache__
+*.pyc
+
+# Environment
+.env
+.env.local
+.env.prod
+.env.dev
+.env.test
