@@ -2,7 +2,7 @@
 from pinecone import Pinecone
 
 # Initialize a Pinecone client with your API key
-pc = Pinecone(api_key="pcsk_6x3uAk_9t8PaNmdJx3kTVMJ5PENnRhQXYgdRJ4QZoQA79krQmpcXyL9XmXxWKEBxmLqXYP")
+pc = Pinecone(api_key="pcsk_...")
 
 # Create a dense index with integrated embedding
 index_name = "dense-index"
