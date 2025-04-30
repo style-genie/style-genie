@@ -16,7 +16,7 @@ except json.JSONDecodeError:
 
 # Initialize Pinecone (replace with your API key and environment)
 try:
-    pc = Pinecone(api_key="pcsk_6x3uAk_9t8PaNmdJx3kTVMJ5PENnRhQXYgdRJ4QZoQA79krQmpcXyL9XmXxWKEBxmLqXYP")
+    pc = Pinecone(api_key="pcsk_...")
     host = "https://sg-va8ozeb.svc.aped-4627-b74a.pinecone.io"  # Replace with your index name
     index = pc.Index(host=host)
 except Exception as e:
