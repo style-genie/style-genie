@@ -16,7 +16,7 @@ device = 'cuda' if torch.cuda.is_available() else 'cpu'
 model = SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2', device=device)
 
 # Pinecone Verbindung
-pinecone.init(api_key="pcsk_6x3uAk_9t8PaNmdJx3kTVMJ5PENnRhQXYgdRJ4QZoQA79krQmpcXyL9XmXxWKEBxmLqXYP")
+pinecone.init(api_key="pcsk_...")
 index = pinecone.Index(name="sg")
 
 class SearchRequest(BaseModel):
