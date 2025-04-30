@@ -6,7 +6,7 @@ from flask import jsonify
 
 # Environment variables
 
-INDEX_HOST = os.environ.get("INDEX_HOST", "sg-va8ozeb.svc.aped-4627-b74a.pinecone.io")
+INDEX_HOST = os.environ.get("INDEX_HOST", "sg-va...")
 NAMESPACE = os.environ.get("NAMESPACE", "__default__")
 PINECONE_API_KEY = os.environ.get("PINECONE_API_KEY", "pcsk_...")
 

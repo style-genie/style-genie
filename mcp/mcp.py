@@ -54,12 +54,11 @@ def fetch_elements_from_vector_db(query):
     return formatted_results
 def get_json_element_by_id(id):
     """
-    Holt ein JSON-Element aus der Datei basierend auf der ID.
-    Args:
-        id (str): Die ID des gesuchten Elements
-    Returns:
-        dict: Das gefundene JSON-Element oder None wenn nicht gefunden
-    """
+Gets a JSON element from the file based on the ID.
+Args:
+id (str): The ID of the element to search for
+Returns:
+dict: The found JSON element or None if not found    """
     try:
         with open('../data.json', 'r') as f:
             data = json.load(f)

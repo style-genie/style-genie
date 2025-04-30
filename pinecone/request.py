@@ -11,11 +11,11 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# Model und Pinecone Initialisierung
+# Model and Pinecone Initialization
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 model = SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2', device=device)
 
-# Pinecone Verbindung
+# Pinecone Connection
 pinecone.init(api_key="pcsk_...")
 index = pinecone.Index(name="sg")
 
@@ -29,29 +29,29 @@ class SearchResult(BaseModel):
 
 @app.get("/health")
 async def health_check():
-    """Überprüft ob der Server und die Pinecone-Verbindung funktioniert"""
+    """Checks if the server and the Pinecone connection are working"""
     try:
         if index_name not in pinecone.list_indexes():
-            raise HTTPException(status_code=500, detail="Pinecone Index nicht verfügbar")
+            raise HTTPException(status_code=500, detail="Pinecone Index not available")
         return {"status": "healthy", "index": index_name}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/search", response_model=List[SearchResult])
 async def search_items(request: SearchRequest):
-    """Sucht nach ähnlichen Fashion-Items"""
+    """Searches for similar fashion items"""
     try:
-        # Query in Vektor umwandeln
+        # Convert query to vector
         query_vector = model.encode(request.query).tolist()
         
-        # Pinecone abfragen
+        # Query Pinecone
         results = index.query(
             vector=query_vector,
             top_k=request.top_k,
             include_metadata=True
         )
         
-        # Ergebnisse formatieren
+        # Format results
         formatted_results = [
             SearchResult(
                 score=match.score,

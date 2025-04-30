@@ -29,7 +29,7 @@ def get_random_proxy(proxy_list_path):
 def scrape_ssense(page_number):
     driver = None
     try:
-        proxy_list_path = "/home/ji/Dokumente/fashion/StyleRecommendation/scraper/proxies.json"
+        proxy_list_path = ",,/proxies.json"
         proxy_host, proxy_port = get_random_proxy(proxy_list_path)
         print(f"using proxy: {proxy_host}")
         # Use Firefox Options
