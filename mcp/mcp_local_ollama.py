@@ -4,10 +4,6 @@ import subprocess
 import json
 import os
 print(litellm.supports_function_calling(model="ollama/gemma3:27b"))
-OLLAMA_HOST = os.environ.get("OLLAMA_HOST", "https://chat.kxsb.org/ollama")
-OPENWEBUI_KEY=os.environ.get("OPENWEBUI_KEY", "")
-
-
 # Registrierung des Modells für Funktion-Calls
 litellm.register_model(model_cost={
     "ollama/gemma3:27b": {
@@ -85,27 +81,38 @@ dict: The found JSON element or None if not found    """
         return {"error": "Datei nicht gefunden"}
     except json.JSONDecodeError:
         return {"error": "Ungültiges JSON"}
-
-def test_parallel_function_call(message):
+# Example dummy function hard coded to return the same weather
+# In production, this could be your backend API or an external API
+def get_current_weather(location, unit="fahrenheit"):
+    """Get the current weather in a given location"""
+    if "tokyo" in location.lower():
+        return json.dumps({"location": "Tokyo", "temperature": "10", "unit": "celsius"})
+    elif "san francisco" in location.lower():
+        return json.dumps({"location": "San Francisco", "temperature": "72", "unit": "fahrenheit"})
+    elif "paris" in location.lower():
+        return json.dumps({"location": "Paris", "temperature": "22", "unit": "celsius"})
+    else:
+        return json.dumps({"location": location, "temperature": "unknown"})
+def test_parallel_function_call():
     try:
         # Step 1: send the conversation and available functions to the model
-        messages = [{"role": "system", "content": "You are a fashion instructor."}, {"role": "user", "content": message}]
+        messages = [{"role": "user", "content": "Get the Element with ID '123'"}]
         tools = [
             {
                 "type": "function",
                 "function": {
-                    "name": "fetch_elements_from_vector_db",
+                    "name": "get_json_element_by_id",
                     "description": "Get the JSON element with the specified ID",
                     "parameters": {
                         "type": "object",
                         "properties": {
-                            "query": {
+                            "location": {
                                 "type": "string",
-                                "description": "keywords for the semantic search",
+                                "description": "The city and state, e.g. San Francisco, CA",
                             },
-                            "unit": {"type": "string"},
+                            "unit": {"type": "string", "enum": ["celsius", "fahrenheit"]},
                         },
-                        "required": ["query"],
+                        "required": ["location"],
                     },
                 },
             },
@@ -113,7 +120,7 @@ def test_parallel_function_call(message):
             "type": "function",
             "function": {
                 "name": "get_json_element_by_id",
-                "description": "get json element by id",
+                "description": "Holt ein JSON-Element aus der Datei basierend auf der ID",
                 "parameters": {
                     "type": "object",
                     "properties": {
@@ -131,13 +138,9 @@ def test_parallel_function_call(message):
         response = litellm.completion(
             model="ollama/gemma3:27b",
             messages=messages,
-            api_key=OPENWEBUI_KEY,
-            base_url=OLLAMA_HOST,
-            timeout=60,
             tools=tools,
             tool_choice="auto",  # auto is default, but we'll be explicit
         )
-    
         print("\nFirst LLM Response:\n", response)
         response_message = response.choices[0].message
         tool_calls = response_message.tool_calls
@@ -147,22 +150,15 @@ def test_parallel_function_call(message):
             # Step 3: call the function
             # Note: the JSON response may not always be valid; be sure to handle errors
             available_functions = {
+                "get_current_weather": get_current_weather,
                 "get_json_element_by_id":get_json_element_by_id
             }  # only one function in this example, but you can have multiple
             messages.append(response_message)  # extend conversation with assistant's reply
-            
-            
             # Step 4: send the info for each function call and function response to the model
-            
-                # ----> ITERATING THROUGH TOOL CALLS <-----            
-            
             for tool_call in tool_calls:
                 function_name = tool_call.function.name
                 function_to_call = available_functions[function_name]
                 function_args = json.loads(tool_call.function.arguments)
-                
-                # ----> FORMATTING FUNCTION RESPONSE <-----
-                
                 if(function_name == "get_json_element_by_id"):
                      function_response = function_to_call(id=function_args.get("id"))
                 else:
@@ -170,7 +166,6 @@ def test_parallel_function_call(message):
                         location=function_args.get("location"),
                         unit=function_args.get("unit"),
                     )
-                
                 messages.append(
                     {
                         "tool_call_id": tool_call.id,
@@ -179,15 +174,9 @@ def test_parallel_function_call(message):
                         "content": function_response,
                     }
                 )  # extend conversation with function response
-                
             second_response = litellm.completion(
                 model="ollama/gemma3:27b",
                 messages=messages,
-                api_key=OPENWEBUI_KEY,
-                base_url=OLLAMA_HOST,
-                timeout=60,
-                tools=tools,
-                tool_choice="auto",  # auto is default, but we'll be explicit
             )  # get a new response from the model where it can see the function response
             print("\nSecond LLM response:\n", second_response)
             return second_response
@@ -197,41 +186,3 @@ def test_parallel_function_call(message):
 test_parallel_function_call()
 
 
-
-#     def completion(
-    #         model: str,
-    #         messages: List = [],
-    #         # Optional OpenAI params
-    #         timeout: Optional[Union[float, int]] = None,
-    #         temperature: Optional[float] = None,
-    #         top_p: Optional[float] = None,
-    #         n: Optional[int] = None,
-    #         stream: Optional[bool] = None,
-    #         stream_options: Optional[dict] = None,
-    #         stop=None,
-    #         max_completion_tokens: Optional[int] = None,
-    #         max_tokens: Optional[int] = None,
-    #         presence_penalty: Optional[float] = None,
-    #         frequency_penalty: Optional[float] = None,
-    #         logit_bias: Optional[dict] = None,
-    #         user: Optional[str] = None,
-    #         # openai v1.0+ new params
-    #         response_format: Optional[dict] = None,
-    #         seed: Optional[int] = None,
-    #         tools: Optional[List] = None,
-    #         tool_choice: Optional[str] = None,
-    #         parallel_tool_calls: Optional[bool] = None,
-    #         logprobs: Optional[bool] = None,
-    #         top_logprobs: Optional[int] = None,
-    #         deployment_id=None,
-    #         # soon to be deprecated params by OpenAI
-    #         functions: Optional[List] = None,
-    #         function_call: Optional[str] = None,
-    #         # set api_base, api_version, api_key
-    #         base_url: Optional[str] = None,
-    #         api_version: Optional[str] = None,
-    #         api_key: Optional[str] = None,
-    #         model_list: Optional[list] = None,  # pass in a list of api_base,keys, etc.
-    #         # Optional liteLLM function params
-    #         **kwargs,
-    # )

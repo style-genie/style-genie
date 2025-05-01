@@ -2,6 +2,8 @@ import base64
 import io
 import logging
 import os
+import sys
+sys.path.append(".")
 
 import dotenv
 from fastapi import FastAPI
@@ -62,3 +64,15 @@ async def compose(
             clothing_item_img_file,
         ],
     )
+
+def ask_clothing_recommendation():
+    clothing_query = input("What kind of clothing recommendation are you looking for? ")
+    import sys
+    sys.path.append("../../../")
+    from mcp import mcp
+    mcp.test_parallel_function_call(clothing_query)
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=1500)
+    ask_clothing_recommendation()
