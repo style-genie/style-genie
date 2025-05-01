@@ -18,38 +18,35 @@ for key, value in config.items():
 with open("./../../data/data.json", "r", encoding="utf-8") as f:
     data = json.load(f)
 class ModelContextProtocol:
-    def __init__(self, models, api_keys):
-        self.models = models
-        self.api_keys = api_keys
-        
+    def __init__(self):
+        self.default_host = ""
+        self.PINECONE_API_KEY = os.environ.get("PINECONE_API_KEY", "")
+        if(self.PINECONE_API_KEY == ""):
+            raise ValueError("PINECONE_API_KEY environment variable not set")
+        self.INDEX_HOST = os.environ.get("INDEX_HOST", "" )
+        if self.INDEX_HOST == "":
+            raise ValueError("INDEX_HOST environment variable not set")
+        self.NAMESPACE = os.environ.get("NAMESPACE", "__default__")
+        #   ----------> CHECKING IF OLLAMA_HOST IS SET <----------
         self.OLLAMA_HOST = os.environ.get("OLLAMA_HOST", "http://localhost:11434")
         self.OLLAMA_API_KEY = os.environ.get("OLLAMA_API_KEY", "")
+        if self.OLLAMA_API_KEY != "":
+            self.register_host("ollama_local",self.OLLAMA_HOST,self.OLLAMA_API_KEY)
+            self.default_host = self.OLLAMA_HOST
+        #   ----------> CHECKING IF OPENWEBUI_HOST IS SET <----------
         self.OPENWEBUI_HOST = os.environ.get("OPENWEBUI_HOST", "https://chat.kxsb.org/ollama")
         self.OPENWEBUI_API_KEY = os.environ.get("OPENWEBUI_API_KEY", "")
+        if self.OPENWEBUI_API_KEY != "":
+            self.register_host("openwebui",self.OPENWEBUI_HOST,self.OPENWEBUI_API_KEY)
+            self.default_host = self.OPENWEBUI_HOST
+        #   ----------> CHECKING IF GEMINI_HOST IS SET <----------
         self.GEMINI_HOST = os.environ.get("GEMINI_HOST", "gemini/gemini-pro")
         self.GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "" )
-        self.INDEX_HOST = os.environ.get("INDEX_HOST", "" )
-        self.NAMESPACE = os.environ.get("NAMESPACE", "__default__")
-        self.PINECONE_API_KEY = os.environ.get("PINECONE_API_KEY", "")
-        
-        if self.models:
-            self.register_models()
-            
-    def register_models(self):
-        """Registers the specified models with LiteLLM."""
-        for model in self.models:
-            try:
-                litellm.register_model(
-                    model_cost={
-                        model: {
-                            "supports_function_calling": True,
-                        }
-                    }
-                )
-                print(f"Registered model: {model}")
-            except Exception as e:
-                print(f"Failed to register model {model}: {e}")
-                sys.exit(1)
+        if self.GEMINI_API_KEY != "":
+            self.register_host("gemini",self.GEMINI_HOST,self.GEMINI_API_KEY)
+            self.default_host = self.GEMINI_HOST
+
+    
     def register_host(self, host_type, host_url, api_key, arguments=[]):
         """Registers a host after the server has started."""
         if host_type == "ollama_local":
@@ -62,7 +59,7 @@ class ModelContextProtocol:
             self.GEMINI_HOST = host_url
             self.GEMINI_API_KEY = api_key
         else:
-            raise ValueError("Invalid host type. Must be 'ollama' or 'openwebui'.")
+            raise ValueError("Invalid host type. Must be 'ollama_local', 'gemini' or 'openwebui'.")
         try:
                 # we use base_url since api_base seems to be a deprecated argument
                 litellm.register_model(
@@ -141,7 +138,7 @@ class ModelContextProtocol:
             return {"error": "Datei nicht gefunden"}
         except json.JSONDecodeError:
             return {"error": "Ungültiges JSON"}
-    def mcp_completion(self, message):
+    def mcp_completion(self, message, host="gemini"):
         """Tests parallel function calling."""
         try:
             # Step 1: send the conversation and available functions to the model
