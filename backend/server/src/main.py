@@ -6,10 +6,10 @@ import dotenv
 from fastapi import FastAPI, Query, middleware
 from fastapi.middleware import cors
 from pydantic import BaseModel
-from src.ai.img_to_img import ImgToImg
+from ai.img_to_img import ImgToImg
 import sys
-sys.path.append(".")
-from src.mcp.mcp import fetch_elements_from_vector_db, mcp_completion
+# sys.path.append(".")
+from mcp.mcp import fetch_elements_from_vector_db, mcp_completion
 
 logging.basicConfig(
     format="%(asctime)s,%(msecs)03d %(levelname)-8s [%(filename)s:%(lineno)d] %(message)s",
