@@ -3,6 +3,8 @@ import json
 import subprocess
 import json
 import os
+import sys
+sys.path.append("../../../../data/")
 print(litellm.supports_function_calling(model="ollama/gemma3:27b"))
 OLLAMA_HOST = os.environ.get("OLLAMA_HOST", "https://chat.kxsb.org/ollama")
 OPENWEBUI_KEY=os.environ.get("OPENWEBUI_KEY", "")
@@ -14,7 +16,8 @@ litellm.register_model(model_cost={
         "supports_function_calling": True
     },
 })
-with open('/lite/data.json', 'r') as f:
+
+with open('../../../data/data.json', 'r', encoding='utf-8') as f:
     data = json.load(f)
 def fetch_elements_from_vector_db(query):
     """Fetches elements from the vector database based on the given query.
