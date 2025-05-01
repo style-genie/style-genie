@@ -128,4 +128,11 @@ docker rm $(docker ps -a -q)
 
 # Run image in detached mode
 docker run -d --name $CONTAINER_NAME -p 80:80 $DOMAIN/$CR/$IMAGE_NAME
+
+## Example Query
+
+To get a clothing recommendation, you can use the following curl command:
+
+```shell
+curl http://localhost:1500 -d "What should I wear to a party?"
 ```
