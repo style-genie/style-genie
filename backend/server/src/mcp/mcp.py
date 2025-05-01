@@ -7,16 +7,19 @@ import sys
 sys.path.append("../../../../data/")
 print(litellm.supports_function_calling(model="ollama/gemma3:27b"))
 OLLAMA_HOST = os.environ.get("OLLAMA_HOST", "https://chat.kxsb.org/ollama")
-OPENWEBUI_KEY=os.environ.get("OPENWEBUI_KEY", "")
+OPENWEBUI_API_KEY=os.environ.get("OPENWEBUI_KEY", "")
 
 
 # Registrierung des Modells für Funktion-Calls
 litellm.register_model(model_cost={
     "ollama/gemma3:27b": {
-        "supports_function_calling": True
+        "supports_function_calling": True,
+        "api_key":OPENWEBUI_API_KEY,
+        "api_base":OLLAMA_HOST,
+        "base_url":"https://chat.kxsb.org/api"
     },
 })
-
+print("registered model")
 with open('../../../data/data.json', 'r', encoding='utf-8') as f:
     data = json.load(f)
 def fetch_elements_from_vector_db(query):
@@ -149,7 +152,7 @@ def mcp_completion(message):
         response = litellm.completion(
             model="ollama/gemma3:27b",
             messages=messages,
-            api_key=OPENWEBUI_KEY,
+            api_key=OPENWEBUI_API_KEY,
             base_url=OLLAMA_HOST,
             timeout=60,
             tools=tools,
@@ -201,7 +204,7 @@ def mcp_completion(message):
             second_response = litellm.completion(
                 model="ollama/gemma3:27b",
                 messages=messages,
-                api_key=OPENWEBUI_KEY,
+                api_key=OPENWEBUI_API_KEY,
                 base_url=OLLAMA_HOST,
                 timeout=60,
                 tools=tools,

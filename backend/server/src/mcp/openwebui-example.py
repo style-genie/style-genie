@@ -17,7 +17,7 @@ OLLAMA_API_KEY = os.environ.get("OLLAMA_API_KEY", "")
 
 # OpenWebUI Configuration
 OPENWEBUI_HOST = os.environ.get("OPENWEBUI_HOST", "https://chat.kxsb.org/api")
-OPENWEBUI_API_KEY = os.environ.get("OPENWEBUI_API_KEY")
+OPENWEBUI_API_KEY = OLLAMA_API_KEY#os.environ.get("OPENWEBUI_API_KEY")
 
 
 def get_openwebui_client():
