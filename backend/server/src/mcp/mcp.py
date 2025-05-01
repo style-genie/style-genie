@@ -15,6 +15,42 @@ import sys
 from pathlib import Path
 from dotenv import dotenv_values
 import requests
+instruction_message ={"role": "system", "content": """
+                    You are a fashion instructor. 
+                    You must help the user to find the perfect outfits that match their preferences. 
+                    Here are some important instructions you must follow:
+                    - document your steps and output in on readable json format.
+                    - your output must be a json object.
+                    - your output must have the same format as the example:
+                        output = {
+                        "achievements": ['''
+                            - step 1: ask the user for their preferences
+                        ''',],
+                        "next_steps:'''
+                            - step 2: use the get_json_element_by_id function to get the data from data.json
+                            - step 3: use the fetch_elements_from_vector_db function to get the data from the vector database
+                        ''',
+                        "user_feedback_required": False,
+                        "markdown_media_portal":'''
+                            I found some addionation for you that i wanna share with you:
+                            ## Clothing recommendation
+                            - i was looking for some darker colors that mach your bright hair
+                            - for the trouser i selected a blue color as you wanted
+                            ### Trend insights
+                            - the nike sportswear collection is very popular right now, i collected some data from the internet for you:
+                            - image: !(image)[https://images.unsplash.com/photo]
+                            - forbes reported that nike sportswear is the most popular brand in the world:
+                                - https://www.forbes.com/sites/forbestechcouncil/2022/08/02/nike-sportswear-earnings-2022/#6b2e1b5d7f4f
+                                > the also reported that nike sportswear was sold more than any other brand in the world, here is the data:
+                                - https://www.forbes.com/sites/forbestechcouncil/2022/08/02/nike-sportswear-earnings-2022/#6b2e1b5d7f4f
+                        '''
+                        "tools_required_next": ["get_json_element_by_id", "fetch_elements_from_vector_db"],
+                        "important_notes": "You must use the tools in order to get the data. The user noted that it is important to find armani only!",
+                        "task_finished": False,
+                        "step_failed": False
+                        }
+                    """
+}
 tools = [
                 {
                     "type": "function",
@@ -179,114 +215,101 @@ class ModelContextProtocol:
             return {"error": "Datei nicht gefunden"}
         except json.JSONDecodeError:
             return {"error": "Ungültiges JSON"}
-
+    def mcp_completion(self, messages, model="gemini",step=1):
+        """Tests parallel function calling."""
+        try:
+            response = litellm.completion(
+                model=self.models[model],
+                messages=messages,
+                api_key=self.models[model]["api_key"],
+                base_url=self.models[model]["base_url"],
+                tools=tools,
+                tool_choice="auto",  # auto is default, but we'll be explicit
+            )
+            print("\nLLM Response:\n", response)
+            response_message = response.choices[0].message
+            json_response = json.loads(response_message.content)    
+            tool_calls = response_message.tool_calls
+            print("\nLength of tool calls", len(tool_calls))
+            # Step 2: check if the model wanted to call a function
+            if tool_calls:
+                # Step 3: call the function
+                # Note: the JSON response may not always be valid; be sure to handle errors
+                available_functions = {
+                    "get_json_element_by_id": self.get_json_element_by_id,
+                    "fetch_elements_from_vector_db": self.fetch_elements_from_vector_db,
+                }  # only one function in this example, but you can have multiple
+                messages.append(response_message)  # extend conversation with assistant's reply
+                # Step 4: send the info for each function call and function response to the model
+                for tool_call in tool_calls:
+                    function_name = tool_call.function.name
+                    function_to_call = available_functions[function_name]
+                    function_args = json.loads(tool_call.function.arguments)
+                    if function_name == "get_json_element_by_id":
+                        function_response = function_to_call(id=function_args.get("id"))
+                    else:
+                        function_response = function_to_call(query=function_args.get("query"))
+                    messages.append(
+                        {
+                            "tool_call_id": tool_call.id,
+                            "role": "tool",
+                            "name": function_name,
+                            "content": function_response,
+                        }
+                    )  # extend conversation with function response
+            json_response["messages"] = messages
+            json_response["step"] = step+1
+            return json_response
+        except Exception as e:
+            print(f"Error in inner try: {e}")
+            return f"Error in inner try: {e}"
 
 class Session:
-    def __init__(self, modelContextProtocol,max_tokens=150,temperature=0.7,max_recursion_depth=10):
-        self.mcp = modelContextProtocol
-        self.models = modelContextProtocol.models
+    def __init__(self, max_tokens=150,temperature=0.7,max_recursion_depth=10):
+        self.mcp = ModelContextProtocol()
+        self.models = self.mcp.models
         self.history = []
         self.max_tokens = max_tokens
         self.temperature = temperature
         self.max_recursion_depth = max_recursion_depth
-        
-    def mcp_completion(self, message, model="gemini",step=1):
-        """Tests parallel function calling."""
-        conversation_history = []
+        self.conversation_history = []
+        self.messages = []
+    def start(self, message, model="gemini"):
         try:
-            # Step 1: send the conversation and available functions to the model
             messages = [
-                {"role": "system", "content": """
-                 You are a fashion instructor. 
-                 You must help the user to find the perfect outfits that match their preferences. 
-                 Here are some important instructions you must follow:
-                 - document your steps and output in on readable json format.
-                 - your output must be a json object.
-                 - your output must have the same format as the example:
-                    output = {
-                     "achievements": ['''
-                         - step 1: ask the user for their preferences
-                     ''',],
-                     "next_steps:'''
-                        - step 2: use the get_json_element_by_id function to get the data from data.json
-                        - step 3: use the fetch_elements_from_vector_db function to get the data from the vector database
-                    ''',
-                     "user_feedback_required": False,
-                     "tools_required_next": ["get_json_element_by_id", "fetch_elements_from_vector_db"],
-                     "important_notes": "You must use the tools in order to get the data. The user noted that it is important to find armani only!",
-                     "task_finished": False,
-                     "step_failed": False
-                     }
-                 """},
-                {"role": "user", "content": message},
+                instruction_message,
+                {
+                    "role": "history",
+                    "content": message.history,
+                },
             ]
-            conversation_history.extend(messages)
-            
-            try:
-                response = litellm.completion(
-                    model=self.models[model],
-                    messages=messages,
-                    api_key=self.models[model]["api_key"],
-                    base_url=self.models[model]["base_url"],
-                    tools=tools,
-                    tool_choice="auto",  # auto is default, but we'll be explicit
-                )
-                print("\nLLM Response:\n", response)
-                response_message = response.choices[0].message
-                json_response = json.loads(response_message.content)    
-                tool_calls = response_message.tool_calls
-                print("\nLength of tool calls", len(tool_calls))
-                # Step 2: check if the model wanted to call a function
-                if tool_calls:
-                    # Step 3: call the function
-                    # Note: the JSON response may not always be valid; be sure to handle errors
-                    available_functions = {
-                        "get_json_element_by_id": self.mcp.get_json_element_by_id,
-                        "fetch_elements_from_vector_db": self.mcp.fetch_elements_from_vector_db,
-                    }  # only one function in this example, but you can have multiple
-                    messages.append(response_message)  # extend conversation with assistant's reply
-                    # Step 4: send the info for each function call and function response to the model
-                    for tool_call in tool_calls:
-                        function_name = tool_call.function.name
-                        function_to_call = available_functions[function_name]
-                        function_args = json.loads(tool_call.function.arguments)
-                        if function_name == "get_json_element_by_id":
-                            function_response = function_to_call(id=function_args.get("id"))
-                        else:
-                            function_response = function_to_call(query=function_args.get("query"))
-                        messages.append(
-                            {
-                                "tool_call_id": tool_call.id,
-                                "role": "tool",
-                                "name": function_name,
-                                "content": function_response,
-                            }
-                        )  # extend conversation with function response
-                if(json_response.get("task_finished")):
+            json_response = self.mcp.mcp_completion(
+                messages=messages,
+                model=model,
+            )
+            self.conversation_history.extend(json_response["messages"])
+            if(json_response.get("task_finished")):
+                return json_response
+            else:
+                print(f"""
+--------------------------------------
+        Task not finished
+        {json_response}
+--------------------------------------
+""") 
+                json_response["messages"]=messages
+                if(json_response["step"]>self.max_recursion_depth and not json_response.get("step_failed")):
                     return json_response
                 else:
-                    print(f"""
-    --------------------------------------
-            Task not finished
-            {json_response}
-    --------------------------------------
-""") 
-                    json_response["messages"]=messages
-                    step+=1
-                    if(step>self.max_recursion_depth&&not json_response.get("step_failed")):
-                        return json_response
-                    else:
-                        return self.mcp_completion(
-                            message=json.dumps(json_response),
-                            model="gemini",
-                            step=step
-                        )
-            except Exception as e:
-                print(f"Error in inner try: {e}")
-                return f"Error in inner try: {e}"
+                    return self.mcp.mcp_completion(
+                        messages=json.dumps(json_response),
+                        model="gemini",
+                        step=json_response["step"]
+                    )
         except Exception as e:
-            print(f"Error occurred: {e}")
-            return f"Error occurred: {e}"
+            print(f"Error in inner try: {e}")
+            return f"Error in inner try: {e}"
+
         
         
         

@@ -74,18 +74,6 @@ async def compose(
         ],
     )
 
-@app.get("/recommendation", response_model=RecommendationResponse)
-async def get_recommendation(query: str = Query(..., description="Clothing recommendation query")):
-    """Gets a clothing recommendation based on the given query.
-
-    Args:
-        query (str): The clothing recommendation query (e.g., "What should I wear to a party?").
-
-    Returns:
-        RecommendationResponse: The clothing recommendation.
-    """
-    result = mcp_completion(query)
-    return {"recommendation": str(result)}
 
 @app.get("/test_vector_db", response_model=RecommendationResponse)
 async def test_vector_db(query: str = Query(..., description="Vector database query")):
@@ -101,3 +89,22 @@ async def test_vector_db(query: str = Query(..., description="Vector database qu
     """
     result = fetch_elements_from_vector_db(query)
     return {"recommendation": str(result)}
+
+
+
+
+# --------> OLD <---------
+# @app.get("/recommendation", response_model=RecommendationResponse)
+# async def get_recommendation(query: str = Query(..., description="Clothing recommendation query")):
+#     """Gets a clothing recommendation based on the given query.
+
+#     Args:
+#         query (str): The clothing recommendation query (e.g., "What should I wear to a party?").
+#         model (str): The model to use (e.g., local_ollama, gemini, openwebui).
+
+#     Returns:
+#         RecommendationResponse: The clothing recommendation.
+#     """
+#     result = mcp_completion([{"role": "user", "content": query}])
+    
+#     return {"recommendation": str(result)}
