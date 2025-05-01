@@ -17,8 +17,13 @@ litellm.register_model(model_cost={
 with open('/lite/data.json', 'r') as f:
     data = json.load(f)
 def fetch_elements_from_vector_db(query):
-    """
-    Fetches elements from the vector database based on the given query.
+    """Fetches elements from the vector database based on the given query.
+
+    Args:
+        query (str): The query to use to search the vector database.
+
+    Returns:
+        list: A list of elements from the vector database.
     """
     INDEX_HOST = os.environ.get("INDEX_HOST", "sg-va8...")
     NAMESPACE = os.environ.get("NAMESPACE", "__default__")
@@ -57,12 +62,14 @@ def fetch_elements_from_vector_db(query):
         formatted_results.append(item)
     return formatted_results
 def get_json_element_by_id(id):
+    """Gets a JSON element from the file based on the ID.
+
+    Args:
+        id (str): The ID of the element to search for.
+
+    Returns:
+        dict: The found JSON element or None if not found.
     """
-Gets a JSON element from the file based on the ID.
-Args:
-id (str): The ID of the element to search for
-Returns:
-dict: The found JSON element or None if not found    """
     try:
         with open('../data.json', 'r') as f:
             data = json.load(f)
@@ -86,7 +93,15 @@ dict: The found JSON element or None if not found    """
     except json.JSONDecodeError:
         return {"error": "Ungültiges JSON"}
 
-def test_parallel_function_call(message):
+def mcp_completion(message):
+    """Tests parallel function calling.
+
+    Args:
+        message (str): The message to send to the model.
+
+    Returns:
+        str: The response from the model.
+    """
     try:
         # Step 1: send the conversation and available functions to the model
         messages = [{"role": "system", "content": "You are a fashion instructor."}, {"role": "user", "content": message}]

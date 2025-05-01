@@ -2,13 +2,14 @@ import base64
 import io
 import logging
 import os
-
 import dotenv
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
+from fastapi import FastAPI, Query, middleware
+from fastapi.middleware import cors
 from pydantic import BaseModel
-
 from src.ai.img_to_img import ImgToImg
+import sys
+sys.path.append(".")
+from src.mcp.mcp import fetch_elements_from_vector_db, mcp_completion
 
 logging.basicConfig(
     format="%(asctime)s,%(msecs)03d %(levelname)-8s [%(filename)s:%(lineno)d] %(message)s",
@@ -31,7 +32,7 @@ allowed_origins = os.environ.get("CORS_ORIGINS", "*").split(",")
 
 # Add CORS middleware
 app.add_middleware(
-    CORSMiddleware,
+    cors.CORSMiddleware,
     allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
@@ -42,12 +43,22 @@ class ComposeRequestBody(BaseModel):
     user_img: str
     clothing_item_img: str
 
+class RecommendationResponse(BaseModel):
+    recommendation: str
+
 # Routes implementation
 @app.post("/compose")
 async def compose(
     request_body: ComposeRequestBody,
 ) -> bytes:
-    """Generate a composite image based on user image and clothing item."""
+    """Generates a composite image based on user image and clothing item.
+
+    Args:
+        request_body (ComposeRequestBody): The request body containing the user image and clothing item image.
+
+    Returns:
+        bytes: The generated composite image.
+    """
     logger.info("Start %s ...", "compose")
     # Decode base64 string into bytes and wrap in a BytesIO with a proper file name and extension.
     user_img_file = io.BytesIO(base64.b64decode(request_body.user_img))
@@ -63,13 +74,30 @@ async def compose(
         ],
     )
 
-from fastapi import Query
-import subprocess
-
-class RecommendationResponse(BaseModel):
-    recommendation: str
-
 @app.get("/recommendation", response_model=RecommendationResponse)
 async def get_recommendation(query: str = Query(..., description="Clothing recommendation query")):
-    result = subprocess.run(["python", "./../../../mcp/mcp.py", query], capture_output=True, text=True)
-    return {"recommendation": result.stdout}
+    """Gets a clothing recommendation based on the given query.
+
+    Args:
+        query (str): The clothing recommendation query (e.g., "What should I wear to a party?").
+
+    Returns:
+        RecommendationResponse: The clothing recommendation.
+    """
+    result = mcp_completion(query)
+    return {"recommendation": str(result)}
+
+@app.get("/test_vector_db", response_model=RecommendationResponse)
+async def test_vector_db(query: str = Query(..., description="Vector database query")):
+    """Tests the vector database.
+
+    Args:
+        query (str): The query to use to test the vector database (e.g., "What is a good casual outfit?").
+    Example:
+        curl "http://localhost:1500/test_vector_db?query=What%20is%20a%20good%20casual%20outfit?"
+
+    Returns:
+        RecommendationResponse: The results from the vector database.
+    """
+    result = fetch_elements_from_vector_db(query)
+    return {"recommendation": str(result)}

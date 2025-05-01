@@ -131,8 +131,16 @@ docker run -d --name $CONTAINER_NAME -p 80:80 $DOMAIN/$CR/$IMAGE_NAME
 
 ## Example Query
 
+
+## Using the MCP
+
 To get a clothing recommendation, you can use the following curl command:
 
 ```shell
 curl "http://localhost:1500/recommendation?query=What should I wear to a party?"
+
+To test the vector database, you can use the following curl command:
+
+```shell
+curl "http://localhost:1500/test_vector_db?query=good%20casual%20outfit?"
 ```
