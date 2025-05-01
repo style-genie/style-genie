@@ -2,8 +2,6 @@ import base64
 import io
 import logging
 import os
-import sys
-sys.path.append(".")
 
 import dotenv
 from fastapi import FastAPI
@@ -65,14 +63,13 @@ async def compose(
         ],
     )
 
-def ask_clothing_recommendation():
-    clothing_query = input("What kind of clothing recommendation are you looking for? ")
-    import sys
-    sys.path.append("../../../")
-    from mcp import mcp
-    mcp.test_parallel_function_call(clothing_query)
+from fastapi import Query
+import subprocess
 
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=1500)
-    ask_clothing_recommendation()
+class RecommendationResponse(BaseModel):
+    recommendation: str
+
+@app.get("/recommendation", response_model=RecommendationResponse)
+async def get_recommendation(query: str = Query(..., description="Clothing recommendation query")):
+    result = subprocess.run(["python", "./../../../mcp/mcp.py", query], capture_output=True, text=True)
+    return {"recommendation": result.stdout}

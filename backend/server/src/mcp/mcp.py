@@ -194,7 +194,13 @@ def test_parallel_function_call(message):
     except Exception as e:
       print(f"Error occurred: {e}")
 
-test_parallel_function_call()
+if __name__ == "__main__":
+    import sys
+    if len(sys.argv) > 1:
+        message = sys.argv[1]
+    else:
+        message = "What should I wear to a party?"
+    test_parallel_function_call(message)
 
 
 
