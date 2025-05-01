@@ -4,13 +4,55 @@ logger = logging.getLogger(__name__)
 import litellm
 import json
 import subprocess
+import os
+import sys
+from pathlib import Path
+from dotenv import dotenv_values
+import requests
 import json
 import os
 import sys
 from pathlib import Path
 from dotenv import dotenv_values
 import requests
-
+tools = [
+                {
+                    "type": "function",
+                    "function": {
+                        "name": "fetch_elements_from_vector_db",
+                        "description": "Get the JSON element with the specified ID",
+                        "parameters": {
+                            "type": "object",
+                            "properties": {
+                                "query": {
+                                    "type": "string",
+                                    "description": "keywords for the semantic search",
+                                },
+                                "unit": {"type": "string"},
+                            },
+                            "required": ["query"],
+                        },
+                    },
+                },
+                {
+                    "type": "function",
+                    "function": {
+                        "name": "get_json_element_by_id",
+                        "description": "get json element by id",
+                        "parameters": {
+                            "type": "object",
+                            "properties": {
+                                "id": {
+                                    "type": "string",
+                                    "description": "Die ID des gesuchten Elements",
+                                },
+                            },
+                            "required": ["id"],
+                            "additionalProperties": False,
+                        },
+                    },
+                },
+            ]
 # Load and set environment variables directly
 config = dotenv_values(Path(__file__).parent.parent.parent / ".env")
 for key, value in config.items():
@@ -19,7 +61,8 @@ with open("./../../data/data.json", "r", encoding="utf-8") as f:
     data = json.load(f)
 class ModelContextProtocol:
     def __init__(self):
-        self.default_host = ""
+        self.models = {}
+        #   ----------> CHECKING IF PINECONE_API_KEY IS SET <----------
         self.PINECONE_API_KEY = os.environ.get("PINECONE_API_KEY", "")
         if(self.PINECONE_API_KEY == ""):
             raise ValueError("PINECONE_API_KEY environment variable not set")
@@ -27,37 +70,35 @@ class ModelContextProtocol:
         if self.INDEX_HOST == "":
             raise ValueError("INDEX_HOST environment variable not set")
         self.NAMESPACE = os.environ.get("NAMESPACE", "__default__")
+        
         #   ----------> CHECKING IF OLLAMA_HOST IS SET <----------
-        self.OLLAMA_HOST = os.environ.get("OLLAMA_HOST", "http://localhost:11434")
-        self.OLLAMA_API_KEY = os.environ.get("OLLAMA_API_KEY", "")
-        if self.OLLAMA_API_KEY != "":
-            self.register_host("ollama_local",self.OLLAMA_HOST,self.OLLAMA_API_KEY)
-            self.default_host = self.OLLAMA_HOST
+        OLLAMA_HOST = os.environ.get("OLLAMA_HOST", "http://localhost:11434")
+        OLLAMA_API_KEY = os.environ.get("OLLAMA_API_KEY", "")
+        if OLLAMA_API_KEY != "":
+            self.register_host("ollama_local",OLLAMA_HOST,OLLAMA_API_KEY)
+
         #   ----------> CHECKING IF OPENWEBUI_HOST IS SET <----------
-        self.OPENWEBUI_HOST = os.environ.get("OPENWEBUI_HOST", "https://chat.kxsb.org/ollama")
-        self.OPENWEBUI_API_KEY = os.environ.get("OPENWEBUI_API_KEY", "")
-        if self.OPENWEBUI_API_KEY != "":
-            self.register_host("openwebui",self.OPENWEBUI_HOST,self.OPENWEBUI_API_KEY)
-            self.default_host = self.OPENWEBUI_HOST
+        OPENWEBUI_HOST = os.environ.get("OPENWEBUI_HOST", "https://chat.kxsb.org/ollama")
+        OPENWEBUI_API_KEY = os.environ.get("OPENWEBUI_API_KEY", "")
+        if OPENWEBUI_API_KEY != "":
+            self.register_host("openwebui",OPENWEBUI_HOST,OPENWEBUI_API_KEY)
+            
         #   ----------> CHECKING IF GEMINI_HOST IS SET <----------
-        self.GEMINI_HOST = os.environ.get("GEMINI_HOST", "gemini/gemini-pro")
-        self.GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "" )
-        if self.GEMINI_API_KEY != "":
-            self.register_host("gemini",self.GEMINI_HOST,self.GEMINI_API_KEY)
-            self.default_host = self.GEMINI_HOST
+        GEMINI_HOST = os.environ.get("GEMINI_HOST", "gemini/gemini-pro")
+        GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "" )
+        if GEMINI_API_KEY != "":
+            self.register_host("gemini",GEMINI_HOST,GEMINI_API_KEY)
+            
 
     
     def register_host(self, host_type, host_url, api_key, arguments=[]):
         """Registers a host after the server has started."""
         if host_type == "ollama_local":
-            self.OLLAMA_HOST = host_url
-            self.OLLAMA_API_KEY = api_key
+            self.models["ollama_local"]={"api_key": api_key, "api_base": host_url, "model":"ollama/gemma3:27b", **arguments}
         elif host_type == "openwebui":
-            self.OPENWEBUI_HOST = host_url
-            self.OPENWEBUI_API_KEY = api_key
+            self.models["openwebui"]={"api_key": api_key, "api_base": host_url,"model":"ollama/gemma3:27b", **arguments}
         elif host_type == "gemini":
-            self.GEMINI_HOST = host_url
-            self.GEMINI_API_KEY = api_key
+            self.models["gemini"]={"api_key": api_key, "api_base": host_url, "model": "gemini/gemini-pro",**arguments}
         else:
             raise ValueError("Invalid host type. Must be 'ollama_local', 'gemini' or 'openwebui'.")
         try:
@@ -138,64 +179,61 @@ class ModelContextProtocol:
             return {"error": "Datei nicht gefunden"}
         except json.JSONDecodeError:
             return {"error": "Ungültiges JSON"}
-    def mcp_completion(self, message, host="gemini"):
+
+
+class Session:
+    def __init__(self, modelContextProtocol,max_tokens=150,temperature=0.7,max_recursion_depth=10):
+        self.mcp = modelContextProtocol
+        self.models = modelContextProtocol.models
+        self.history = []
+        self.max_tokens = max_tokens
+        self.temperature = temperature
+        self.max_recursion_depth = max_recursion_depth
+        
+    def mcp_completion(self, message, model="gemini",step=1):
         """Tests parallel function calling."""
+        conversation_history = []
         try:
             # Step 1: send the conversation and available functions to the model
             messages = [
-                {"role": "system", "content": "You are a fashion instructor."},
+                {"role": "system", "content": """
+                 You are a fashion instructor. 
+                 You must help the user to find the perfect outfits that match their preferences. 
+                 Here are some important instructions you must follow:
+                 - document your steps and output in on readable json format.
+                 - your output must be a json object.
+                 - your output must have the same format as the example:
+                    output = {
+                     "achievements": ['''
+                         - step 1: ask the user for their preferences
+                     ''',],
+                     "next_steps:'''
+                        - step 2: use the get_json_element_by_id function to get the data from data.json
+                        - step 3: use the fetch_elements_from_vector_db function to get the data from the vector database
+                    ''',
+                     "user_feedback_required": False,
+                     "tools_required_next": ["get_json_element_by_id", "fetch_elements_from_vector_db"],
+                     "important_notes": "You must use the tools in order to get the data. The user noted that it is important to find armani only!",
+                     "task_finished": False,
+                     "step_failed": False
+                     }
+                 """},
                 {"role": "user", "content": message},
             ]
-            tools = [
-                {
-                    "type": "function",
-                    "function": {
-                        "name": "fetch_elements_from_vector_db",
-                        "description": "Get the JSON element with the specified ID",
-                        "parameters": {
-                            "type": "object",
-                            "properties": {
-                                "query": {
-                                    "type": "string",
-                                    "description": "keywords for the semantic search",
-                                },
-                                "unit": {"type": "string"},
-                            },
-                            "required": ["query"],
-                        },
-                    },
-                },
-                {
-                    "type": "function",
-                    "function": {
-                        "name": "get_json_element_by_id",
-                        "description": "get json element by id",
-                        "parameters": {
-                            "type": "object",
-                            "properties": {
-                                "id": {
-                                    "type": "string",
-                                    "description": "Die ID des gesuchten Elements",
-                                },
-                            },
-                            "required": ["id"],
-                            "additionalProperties": False,
-                        },
-                    },
-                },
-            ]
+            conversation_history.extend(messages)
+            
             try:
                 response = litellm.completion(
-                    model=self.models[0],
+                    model=self.models[model],
                     messages=messages,
-                    api_key=self.OPENWEBUI_API_KEY,
-                    base_url=self.OLLAMA_HOST,
-                    timeout=60,
+                    api_key=self.models[model]["api_key"],
+                    base_url=self.models[model]["base_url"],
                     tools=tools,
                     tool_choice="auto",  # auto is default, but we'll be explicit
                 )
-                print("\nFirst LLM Response:\n", response)
+                print("\nLLM Response:\n", response)
                 response_message = response.choices[0].message
+                json_response = json.loads(response_message.content)    
                 tool_calls = response_message.tool_calls
                 print("\nLength of tool calls", len(tool_calls))
                 # Step 2: check if the model wanted to call a function
@@ -203,8 +241,8 @@ class ModelContextProtocol:
                     # Step 3: call the function
                     # Note: the JSON response may not always be valid; be sure to handle errors
                     available_functions = {
-                        "get_json_element_by_id": self.get_json_element_by_id,
-                        "fetch_elements_from_vector_db": self.fetch_elements_from_vector_db,
+                        "get_json_element_by_id": self.mcp.get_json_element_by_id,
+                        "fetch_elements_from_vector_db": self.mcp.fetch_elements_from_vector_db,
                     }  # only one function in this example, but you can have multiple
                     messages.append(response_message)  # extend conversation with assistant's reply
                     # Step 4: send the info for each function call and function response to the model
@@ -224,58 +262,82 @@ class ModelContextProtocol:
                                 "content": function_response,
                             }
                         )  # extend conversation with function response
-                    second_response = litellm.completion(
-                        model=self.models[0],
-                        messages=messages,
-                        api_key=self.OPENWEBUI_API_KEY,
-                        base_url=self.OLLAMA_HOST,
-                        timeout=60,
-                        tools=tools,
-                        tool_choice="auto",  # auto is default, but we'll be explicit
-                    )  # get a new response from the model where it can see the function response
-                    print("\nSecond LLM response:\n", second_response)
-                    return second_response
+                if(json_response.get("task_finished")):
+                    return json_response
+                else:
+                    print(f"""
+    --------------------------------------
+            Task not finished
+            {json_response}
+    --------------------------------------
+""") 
+                    json_response["messages"]=messages
+                    step+=1
+                    if(step>self.max_recursion_depth&&not json_response.get("step_failed")):
+                        return json_response
+                    else:
+                        return self.mcp_completion(
+                            message=json.dumps(json_response),
+                            model="gemini",
+                            step=step
+                        )
             except Exception as e:
                 print(f"Error in inner try: {e}")
                 return f"Error in inner try: {e}"
         except Exception as e:
             print(f"Error occurred: {e}")
             return f"Error occurred: {e}"
-    def get_openwebui_client(self):
-        if not self.OPENWEBUI_API_KEY:
-            raise ValueError("OPENWEBUI_API_KEY environment variable not set")
-        logger.info(f"Creating OpenWebUI client with host: {self.OPENWEBUI_HOST}")
-        class OpenWebUIClient:
-            def __init__(self, host, api_key):
-                self.host = host
-                self.headers = {
-                    "Content-Type": "application/json",
-                    "Authorization": f"Bearer {api_key}",
-                }
-            def chat(self, model, messages, temperature=0.7, max_tokens=150):
-                url = f"{self.host}/api/chat/completions"
-                payload = {
-                    "model": model,
-                    "messages": messages,
-                    "temperature": temperature,
-                    "max_tokens": max_tokens,
-                }
-                try:
-                    response = requests.post(url, headers=self.headers, json=payload)
-                    response.raise_for_status()
-                    return response.json()
-                except Exception as e:
-                    logger.error(f"Failed to connect to {self.host}: {str(e)}")
-                    raise
-        client = OpenWebUIClient(self.OPENWEBUI_HOST, self.OPENWEBUI_API_KEY)
-        # Test connection
-        logger.debug(f"Testing connection to OpenWebUI server at {self.OPENWEBUI_HOST}")
-        try:
-            response = client.chat(
-                model="deepseek/chat_V3", messages=[{"role": "system", "content": "connection test"}]
-            )
-            logger.info(f"Successfully connected to {self.OPENWEBUI_HOST}")
-        except Exception as e:
-            logger.error(f"Failed to connect to {self.OPENWEBUI_HOST}: {str(e)}")
-            raise
-        return client
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+# ----------------> Examples <-------------------
+        
+        
+    # def get_openwebui_client(self):
+    #     if not self.models["openwebui"]["api_key"]:
+    #         raise ValueError("OPENWEBUI_API_KEY environment variable not set")
+    #     class OpenWebUIClient:
+    #         def __init__(self, host, api_key):
+    #             self.host = host
+    #             self.headers = {
+    #                 "Content-Type": "application/json",
+    #                 "Authorization": f"Bearer {api_key}",
+    #             }
+    #         def chat(self, model, messages, temperature=0.7, max_tokens=150):
+    #             url = f"{self.host}/api/chat/completions"
+    #             payload = {
+    #                 "model": model,
+    #                 "messages": messages,
+    #                 "temperature": temperature,
+    #                 "max_tokens": max_tokens,
+    #             }
+    #             try:
+    #                 response = requests.post(url, headers=self.headers, json=payload)
+    #                 response.raise_for_status()
+    #                 return response.json()
+    #             except Exception as e:
+    #                 logger.error(f"Failed to connect to {self.host}: {str(e)}")
+    #                 raise
+    #     client = OpenWebUIClient(self.OPENWEBUI_HOST, self.OPENWEBUI_API_KEY)
+    #     # Test connection
+    #     logger.debug(f"Testing connection to OpenWebUI server at {self.OPENWEBUI_HOST}")
+    #     try:
+    #         response = client.chat(
+    #             model="deepseek/chat_V3", messages=[{"role": "system", "content": "connection test"}]
+    #         )
+    #         logger.info(f"Successfully connected to {self.OPENWEBUI_HOST}")
+    #     except Exception as e:
+    #         logger.error(f"Failed to connect to {self.OPENWEBUI_HOST}: {str(e)}")
+    #         raise
+    #     return client

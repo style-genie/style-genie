@@ -210,8 +210,10 @@ def mcp_completion(message):
                 tools=tools,
                 tool_choice="auto",  # auto is default, but we'll be explicit
             )  # get a new response from the model where it can see the function response
+            
             print("\nSecond LLM response:\n", second_response)
             return second_response
+        
     except Exception as e:
       print(f"Error occurred: {e}")
 
