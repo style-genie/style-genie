@@ -218,7 +218,7 @@ if __name__ == "__main__":
         message = sys.argv[1]
     else:
         message = "What should I wear to a party?"
-    test_parallel_function_call(message)
+    mcp_completion(message)
 
 
 
