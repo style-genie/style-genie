@@ -1,5 +1,4 @@
 import logging
-
 logger = logging.getLogger(__name__)
 import litellm
 import json
@@ -8,13 +7,6 @@ import os
 import sys
 from pathlib import Path
 from dotenv import dotenv_values
-import requests
-import json
-import os
-import sys
-from pathlib import Path
-from dotenv import dotenv_values
-import requests
 instruction_message ={"role": "system", "content": """
                     You are a fashion instructor. 
                     You must help the user to find the perfect outfits that match their preferences. 
@@ -129,6 +121,7 @@ class ModelContextProtocol:
     
     def register_host(self, host_type, host_url, api_key, arguments=[]):
         """Registers a host after the server has started."""
+        print(f"Registering {host_type} host: {host_url}")
         if host_type == "ollama_local":
             self.models["ollama_local"]={"api_key": api_key, "api_base": host_url, "model":"ollama/gemma3:27b", **arguments}
         elif host_type == "openwebui":
@@ -144,7 +137,6 @@ class ModelContextProtocol:
                         "openwebui": {
                             "supports_function_calling": True,
                             "api_key": api_key,
-                            #"api_base": self.OLLAMA_HOST,
                             "base_url": host_url,
                             **arguments,
                         }
@@ -263,6 +255,8 @@ class ModelContextProtocol:
         except Exception as e:
             print(f"Error in inner try: {e}")
             return f"Error in inner try: {e}"
+
+
 
 class Session:
     def __init__(self, max_tokens=150,temperature=0.7,max_recursion_depth=10):

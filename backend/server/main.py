@@ -7,29 +7,26 @@ from fastapi import FastAPI, Query, middleware
 from fastapi.middleware import cors
 from pydantic import BaseModel
 from src.ai.img_to_img import ImgToImg
+from src.mcp.mcp import Session
+import uvicorn
 import sys
+Sessions=[]
 # sys.path.append(".")
-from src.mcp.mcp import fetch_elements_from_vector_db, mcp_completion
-
 logging.basicConfig(
     format="%(asctime)s,%(msecs)03d %(levelname)-8s [%(filename)s:%(lineno)d] %(message)s",
     datefmt="%Y-%m-%d:%H:%M:%S",
     level=logging.DEBUG,
 )
 logger = logging.getLogger(__name__)
-
 dotenv.load_dotenv("./.env.local")
-
 # Create FastAPI app
 app = FastAPI(
     title="StyleGenie API",
     description="AI-Powered Style Assistant API",
     version="0.1.0",
 )
-
 # Get allowed origins from environment variable or use default
 allowed_origins = os.environ.get("CORS_ORIGINS", "*").split(",")
-
 # Add CORS middleware
 app.add_middleware(
     cors.CORSMiddleware,
@@ -38,14 +35,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
 class ComposeRequestBody(BaseModel):
     user_img: str
     clothing_item_img: str
-
-class RecommendationResponse(BaseModel):
-    recommendation: str
-
 # Routes implementation
 @app.post("/compose")
 async def compose(
@@ -73,38 +65,67 @@ async def compose(
             clothing_item_img_file,
         ],
     )
-
-
-@app.get("/test_vector_db", response_model=RecommendationResponse)
-async def test_vector_db(query: str = Query(..., description="Vector database query")):
-    """Tests the vector database.
-
+class create_session_request(BaseModel):
+    model: str
+    max_tokens: int
+    temperature: float
+    max_recursion_depth: int
+@app.get("/create_session")
+async def create_session(response_model=create_session_request):
+    """Creates a new session.
     Args:
-        query (str): The query to use to test the vector database (e.g., "What is a good casual outfit?").
+        model (str): The model to use (e.g., local_ollama, gemini, openwebui).
+        max_tokens (int): The maximum number of tokens to generate.
+        temperature (float): The temperature to use for sampling.
+        max_recursion_depth (int): The maximum number of recursion steps.
+        
     Example:
-        curl "http://localhost:1500/test_vector_db?query=What%20is%20a%20good%20casual%20outfit?"
+        curl "http://localhost:1500/create_session?model=gemini&max_tokens=150&temperature=0.7&max_recursion_depth=10"
 
     Returns:
-        RecommendationResponse: The results from the vector database.
+        a session id
     """
-    result = fetch_elements_from_vector_db(query)
+    session_id = len(Sessions)
+    session = Session(max_tokens=response_model.max_tokens,temperature=response_model.temperature,max_recursion_depth=response_model.max_recursion_depth)
+    Sessions.append(session)
+    return {"session_id": str(session_id)}
+
+class test_vector_db_request(BaseModel):
+    query: str
+    session_id: int
+@app.get("/test_vector_db", response_model=test_vector_db_request)
+async def test_vector_db(response_model):
+    """Tests the vector database.
+    Args:
+        session_id (int): The session id.
+        query (str): The query to use to test the vector database (e.g., "What is a good casual outfit?").
+        
+    Example:
+        curl "http://localhost:1500/test_vector_db?query=shoes%20trousers?"
+
+    Returns:
+        a json object: {"result": str(result)}
+    """
+    
+    result = Sessions[response_model.session_id].mcp.fetch_elements_from_vector_db(response_model.query)
     return {"recommendation": str(result)}
 
 
 
+if __name__ == "__main__":
+    print("Starte Uvicorn Server direkt aus main.py...")
+    uvicorn.run(
+        # WICHTIG: Für reload=True ist es besser, den Import-String anzugeben.
+        # Uvicorn muss wissen, wie es deine App neu laden kann.
+        "main:app",
+        host="127.0.0.1",
+        port=1500,
+        reload=True  # Aktiviert Auto-Reload bei Code-Änderungen (gut für Entwicklung)
+        # log_level="info" # Optional: Setze das Logging-Level
+    )
 
-# --------> OLD <---------
-# @app.get("/recommendation", response_model=RecommendationResponse)
-# async def get_recommendation(query: str = Query(..., description="Clothing recommendation query")):
-#     """Gets a clothing recommendation based on the given query.
 
-#     Args:
-#         query (str): The clothing recommendation query (e.g., "What should I wear to a party?").
-#         model (str): The model to use (e.g., local_ollama, gemini, openwebui).
 
-#     Returns:
-#         RecommendationResponse: The clothing recommendation.
-#     """
-#     result = mcp_completion([{"role": "user", "content": query}])
-    
-#     return {"recommendation": str(result)}
+
+
+
