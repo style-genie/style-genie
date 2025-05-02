@@ -86,6 +86,23 @@ tools = [
                 },
             ]
 # Load and set environment variables directly
+async def compl_send_await(websocket,mcp,manager,session_id,msg):
+   
+    print(msg)
+    question= mcp.mcp_completion(
+                    messages=[instruction_message,{"role": "user", "content": msg}],
+                    model_type="open_router",
+                    step=0
+                )["response"].content
+    # tell the user you want something
+    print("\nAsking user for responce about:---------------->\n")
+    print(question)
+    asyncio.create_task(manager.send_personal_message(session_id, {"message": question})) 
+    response = await websocket.receive_text()
+    print("\nReceived User Response---------------->\n")
+    print(response)
+    return response  
+  
 config = dotenv_values(Path(__file__).parent.parent.parent / ".env")
 for key, value in config.items():
     os.environ[key] = value
@@ -302,12 +319,7 @@ class ModelContextProtocol:
 
 class Session:
 
-    def waitForResponse(self,message):
-        asyncio.create_task(self.manager.send_personal_message(self.session_id, {"message": message}))
-        data = asyncio.create_task(self.manager.receive_text(self.websocket))
-        message = data#json.loads(data)
-        print(message)
-        return message  
+        
     async def greeting_msg(self):
         greeting_instruction= {"role": "system", "content": "You are a helpful assistant. Say Hello to the user, Introduce yourself. Describe the app. Describe how you would like to help him and what the next steps are that you have planned. You need to access the vector DB in the next steps to find outfits and shopping items. the user needs to provide personal data."}
         msg=[instruction_message,greeting_instruction]
@@ -328,29 +340,53 @@ class Session:
             print("-----> Greeting message sent")
         except Exception as e:
             logger.error(f"Error sending greeting message: {e}")
+    
+    
+    async def taskHandler(self, task):
+        try:
+            
+            messages = task['messages']
+            model = task['model']
+            task_model_type = task['model_type']
+            json_response=self.mcp.mcp_completion(
+                        messages=messages,
+                        model_type=task_model_type,
+                        step=0
+                    )["response"].content
+            print("\nLLM Response---------------->\n")
+            print(json_response)
+            print("...........................................")
+            self.manager.send_personal_message(self.session_id, {"message": json_response})
+            data = await self.websocket.receive_text()
+            print(data)
+            #self.waitForResponse(greeting)
+            # json_response = self.mcp.mcp_completion(
+            #     messages=messages,
+            #     model_type=model,
+            # )
+            self.conversation_history.extend(json_response["messages"])
+            if(json_response.get("task_finished")):
+                return json_response
+            else:
+                print(f"""
+                --------------------------------------
+                        Task not finished
+                        {json_response}
+                --------------------------------------
+                """)
+                json_response["messages"]=messages
+                if(json_response["step"]>self.max_recursion_depth and not json_response.get("step_failed")):
+                    return json_response
+                else:
+                    return self.mcp.mcp_completion(
+                        messages=json.dumps(json_response),
+                        model_type="gemini",
+                        step=json_response["step"]
+                    )
+        except Exception as e:
+            print(f"Error in inner try: {e}")
+            return f"Error in inner try: {e}"
         
-    async def ws_handler(self,):
-        data = await self.manager.receive_text(self.websocket)
-
-        async def loop():
-            while True:
-                if data is None:
-                    break  # Exit the loop if the WebSocket is disconnected
-                try:
-                    message = json.loads(data)
-                    if message.get('type') == 'request_session':
-                        session_request_message = f"Session requested from {self.session_id}"
-                        print(session_request_message)
-                        await self.send_message(session_request_message)
-                        # Session creation is already handled above, so no need to do anything here
-                        await self.send_message("Session created successfully")
-                    else:
-                        print(f"Received message from {self.session_id}: {data}")
-                        await self.send_message(f"Server received: {data}")
-                except json.JSONDecodeError:
-                    logger.error(f"Invalid JSON received from {self.session_id}: {data}")
-                    await self.send_message("Invalid JSON format")
-        await loop()
                 
     def __init__(self, manager,websocket,session_id, max_tokens=150,temperature=0.7,max_recursion_depth=10):
         self.mcp = ModelContextProtocol(manager,session_id)
@@ -367,47 +403,35 @@ class Session:
         self.task=None
        # asyncio.create_task(self.ws_handler())
         asyncio.create_task(self.greeting_msg())
-    async def start(self, message, model="gemini"):
-        try:
-            
-            messages = [
-                instruction_message,
-                {
-                    "role": "history",
-                    "content": message.history,
-                },
-            ]
-            json_response = self.mcp.mcp_completion(
-                messages=messages,
-                model_type=model,
-            )
-            self.conversation_history.extend(json_response["messages"])
-            if(json_response.get("task_finished")):
-                return json_response
-            else:
-                print(f"""
---------------------------------------
-        Task not finished
-        {json_response}
---------------------------------------
-""")
-                json_response["messages"]=messages
-                if(json_response["step"]>self.max_recursion_depth and not json_response.get("step_failed")):
-                    return json_response
-                else:
-                    return self.mcp.mcp_completion(
-                        messages=json.dumps(json_response),
-                        model_type="gemini",
-                        step=json_response["step"]
-                    )
-        except Exception as e:
-            print(f"Error in inner try: {e}")
-            return f"Error in inner try: {e}"
+    
 
         
         
         
         
+    # async def ws_handler(self,):
+    #     data = await self.manager.receive_text(self.websocket)
+
+    #     async def loop():
+    #         while True:
+    #             if data is None:
+    #                 break  # Exit the loop if the WebSocket is disconnected
+    #             try:
+    #                 message = json.loads(data)
+    #                 if message.get('type') == 'request_session':
+    #                     session_request_message = f"Session requested from {self.session_id}"
+    #                     print(session_request_message)
+    #                     await self.send_message(session_request_message)
+    #                     # Session creation is already handled above, so no need to do anything here
+    #                     await self.send_message("Session created successfully")
+    #                 else:
+    #                     print(f"Received message from {self.session_id}: {data}")
+    #                     await self.send_message(f"Server received: {data}")
+    #             except json.JSONDecodeError:
+    #                 logger.error(f"Invalid JSON received from {self.session_id}: {data}")
+    #                 await self.send_message("Invalid JSON format")
+    #     await loop()
+                
         
         
         

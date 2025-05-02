@@ -60,13 +60,15 @@ const ChatInterface: React.FC = () => {
     // const ws = client.current;
     // if (!ws) return;
 
-    const ws = new WebSocket(`ws://localhost:1500/ws/${taskId || 'guest'}`);
-    ws.onopen = () => {
-      ws.send(JSON.stringify({ type: 'request_session' }));
-    };
+    const ws = new WebSocket(`ws://localhost:1500/ws/${taskId || 'guest'}`)
+
+    client.current = ws;
+    
+    // ws.onopen = () => {
+    //   ws.send(JSON.stringify({ type: 'request_session' }));
+    // };
 
     ws.onmessage = (event) => {
-      
       const data = JSON.parse(event.data);
       console.log(event)
       setMessages(prev => [...prev, {
@@ -86,7 +88,7 @@ const ChatInterface: React.FC = () => {
         setTaskResponse(data);
       }
     };
-    return () => ws.close();
+    
   }, [taskId]);
 
   useEffect(() => {
@@ -104,9 +106,10 @@ const ChatInterface: React.FC = () => {
    * @param {React.FormEvent} e The form event.
    */
   const handleSubmit = (e: React.FormEvent) => {
+    console.log(client.current)
     e.preventDefault();
     if (!input.trim()) return;
-
+    client.current.send(input);
     setMessages(prev => [...prev, {
       role: 'user',
       content: input,
