@@ -8,45 +8,10 @@ import sys
 from pathlib import Path
 from dotenv import dotenv_values
 import asyncio
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Query, middleware, Response, HTTPException
+from backend.server.src.agent.workflows.advisor1 import Advisor1
+from crewai.flow.flow import Flow, listen, start
 
-instruction_message ={"role": "system", "content": "you are a friendly assistant"}
-instruction_message2 ={"role": "system", "content": """
-                    You are a fashion instructor. 
-                    You must help the user to find the perfect outfits that match their preferences. 
-                    Here are some important instructions you must follow:
-                    - document your steps and output in on readable json format.
-                    - your output must be a json object.
-                    - your output must have the same format as the example:
-                        output = {
-                        "achievements": ['''
-                            - step 1: ask the user for their preferences
-                        ''',],
-                        "next_steps:'''
-                            - step 2: use the get_json_element_by_id function to get the data from data.json
-                            - step 3: use the fetch_elements_from_vector_db function to get the data from the vector database
-                        ''',
-                        "user_feedback_required": False,
-                        "markdown_media_portal":'''
-                            I found some addionation for you that i wanna share with you:
-                            ## Clothing recommendation
-                            - i was looking for some darker colors that mach your bright hair
-                            - for the trouser i selected a blue color as you wanted
-                            ### Trend insights
-                            - the nike sportswear collection is very popular right now, i collected some data from the internet for you:
-                            - image: !(image)[https://images.unsplash.com/photo]
-                            - forbes reported that nike sportswear is the most popular brand in the world:
-                                - https://www.forbes.com/sites/forbestechcouncil/2022/08/02/nike-sportswear-earnings-2022/#6b2e1b5d7f4f
-                                > the also reported that nike sportswear was sold more than any other brand in the world, here is the data:
-                                - https://www.forbes.com/sites/forbestechcouncil/2022/08/02/nike-sportswear-earnings-2022/#6b2e1b5d7f4f
-                        '''
-                        "tools_required_next": ["get_json_element_by_id", "fetch_elements_from_vector_db"],
-                        "important_notes": "You must use the tools in order to get the data. The user noted that it is important to find armani only!",
-                        "task_finished": False,
-                        "step_failed": False
-                        }
-                    """
-}
+
 tools = [
                 {
                     "type": "function",
@@ -85,14 +50,12 @@ tools = [
                     },
                 },
             ]
-# Load and set environment variables directly
-async def compl_send_await(websocket,mcp,manager,session_id,msg):
-   
+# the reason i have this function here is that mcp functions can call this too
+async def compl_send_await(websocket,mcp,manager,session_id,msg,model_id="open_router_palm2"):
     print(msg)
     question= mcp.mcp_completion(
-                    messages=[instruction_message,{"role": "user", "content": msg}],
-                    model_type="open_router",
-                    step=0
+                    messages=msg,
+                    model=model_id,
                 )["response"].content
     # tell the user you want something
     print("\nAsking user for responce about:---------------->\n")
@@ -132,33 +95,33 @@ class ModelContextProtocol:
         OPENROUTER_API_KEY=os.environ.get("OPENROUTER_API_KEY","")
         OPENROUTER_API_BASE=os.environ.get("OPENROUTER_API_BASE","https://openrouter.ai/api/v1")
         if OPENROUTER_API_KEY != "" and OPENROUTER_API_KEY is not None:
-            self.register_host("open_router",OPENROUTER_API_BASE,OPENROUTER_API_KEY,"openrouter")
+            self.register_provider("open_router",OPENROUTER_API_BASE,OPENROUTER_API_KEY,"openrouter")
 
         #   ----------> CHECKING IF OLLAMA_HOST IS SET <----------
         OLLAMA_HOST = os.environ.get("OLLAMA_HOST", "http://localhost:11434")
         OLLAMA_API_KEY = os.environ.get("OLLAMA_API_KEY", "")
         if OLLAMA_API_KEY != "":
-            self.register_host("ollama_local",OLLAMA_HOST,OLLAMA_API_KEY,"ollama")
+            self.register_provider("ollama_local",OLLAMA_HOST,OLLAMA_API_KEY,"ollama")
 
         #   ----------> CHECKING IF OPENWEBUI_HOST IS SET <----------
         OPENWEBUI_HOST = os.environ.get("OPENWEBUI_HOST", "https://chat.kxsb.org/ollama")
         OPENWEBUI_API_KEY = os.environ.get("OPENWEBUI_API_KEY", "")
         if OPENWEBUI_API_KEY != "":
-            self.register_host("openwebui",OPENWEBUI_HOST,OPENWEBUI_API_KEY,"openwebui")
+            self.register_provider("openwebui",OPENWEBUI_HOST,OPENWEBUI_API_KEY,"openwebui")
             
         #   ----------> CHECKING IF GEMINI_HOST IS SET <----------
         GEMINI_HOST = os.environ.get("GEMINI_HOST", "")
         GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "" )
         if GEMINI_API_KEY != "":
-            self.register_host("gemini",GEMINI_HOST,GEMINI_API_KEY,"gemini")
+            self.register_provider("gemini",GEMINI_HOST,GEMINI_API_KEY,"gemini")
     
-    def register_host(self, host_type, host_url, api_key,provider, arguments={}):
+    def register_provider(self, host_type, host_url, api_key,provider, arguments={}):
         """Registers a host after the server has started."""
         print(f"Registering {provider} host: {host_url}")
-        
+        # registering some models we need later for the agent workflows
         if host_type == "open_router":
-            self.models["open_router"]={"api_key": api_key, "base_url": host_url, "model":"openrouter/openai/gpt-3.5-turbo", "tools":False,**arguments} 
-            self.models["open_router_greeter"]={"api_key": api_key, "base_url": host_url, "model":"openrouter/google/palm-2-chat-bison", "tools":False,**arguments}
+            self.models["open_router_gpt35"]={"api_key": api_key, "base_url": host_url, "model":"openrouter/openai/gpt-3.5-turbo", "tools":False,**arguments} 
+            self.models["open_router_palm2"]={"api_key": api_key, "base_url": host_url, "model":"openrouter/google/palm-2-chat-bison", "tools":False,**arguments}
         elif host_type == "ollama_local":
             self.models["ollama_local"]={"api_key": api_key, "base_url": host_url, "model":"ollama/gemma3:27b","tools":True, **arguments}
         elif host_type == "openwebui":
@@ -241,24 +204,24 @@ class ModelContextProtocol:
             return {"error": "Datei nicht gefunden"}
         except json.JSONDecodeError:
             return {"error": "Ungültiges JSON"}
-    def mcp_completion(self, messages, model_type="open_router",step=1,ignored_tools=[]):
+    def completion(self, messages, model="open_router_palm2",ignored_tools=[]):
         """Tests parallel function calling."""
         
         try:
-            model=self.models[model_type]['model']
-            allow_tools=self.models[model_type]['tools']
+            model=self.models[model]['model']
+            allow_tools=self.models[model]['tools']
             print("-----------------------------------------")
             print(f"model: {model}")
             
-            print(f"baseurl: {self.models[model_type]['base_url']}")#gemini/gemini-2.0-flash-001
+            print(f"baseurl: {self.models[model]['base_url']}")#gemini/gemini-2.0-flash-001
             args={
                 "model":model,
                 "messages":messages,
-                "api_key":self.models[model_type]["api_key"],
+                "api_key":self.models[model]["api_key"],
             }
               # Convert to dictionary
-            if(model_type=="open_router"):
-                args["base_url"]=self.models[model_type]["base_url"] if "base_url" in self.models[model_type] else None
+            if(model=="open_router"):
+                args["base_url"]=self.models[model]["base_url"] if "base_url" in self.models[model] else None
             if(allow_tools):
                 args["tools"] = tools
                 args["tool_choice"] = "auto"
@@ -310,84 +273,14 @@ class ModelContextProtocol:
             # json_response["messages"] = messages
             
             # json_response["step"] = step+1
-            return {"response":response_message,"messages":messages, "step":step+1}
+            return {"response":response_message,"messages":messages}
         except Exception as e:
             logger.error(f"Error in inner try: {e}")
             return {"error": str(e)}
 
 
 
-class Session:
-
-        
-    async def greeting_msg(self):
-        greeting_instruction= {"role": "system", "content": "You are a helpful assistant. Say Hello to the user, Introduce yourself. Describe the app. Describe how you would like to help him and what the next steps are that you have planned. You need to access the vector DB in the next steps to find outfits and shopping items. the user needs to provide personal data."}
-        msg=[instruction_message,greeting_instruction]
-        print("...........................................")
-        greeting= self.mcp.mcp_completion(
-                        messages=msg,
-                        model_type="open_router",
-                        step=0
-                    )["response"].content
-        print("\nLLM Response---------------->\n")
-        print(greeting)
-        print("...........................................")
-        try:
-            print("-----> Greeting message")
-            
-            self.waitForResponse(greeting)
-            #asyncio.create_task(self.manager.broadcast_task_update(self.session_id, "completed", 1))
-            print("-----> Greeting message sent")
-        except Exception as e:
-            logger.error(f"Error sending greeting message: {e}")
-    
-    
-    async def taskHandler(self, task):
-        try:
-            
-            messages = task['messages']
-            model = task['model']
-            task_model_type = task['model_type']
-            json_response=self.mcp.mcp_completion(
-                        messages=messages,
-                        model_type=task_model_type,
-                        step=0
-                    )["response"].content
-            print("\nLLM Response---------------->\n")
-            print(json_response)
-            print("...........................................")
-            self.manager.send_personal_message(self.session_id, {"message": json_response})
-            data = await self.websocket.receive_text()
-            print(data)
-            #self.waitForResponse(greeting)
-            # json_response = self.mcp.mcp_completion(
-            #     messages=messages,
-            #     model_type=model,
-            # )
-            self.conversation_history.extend(json_response["messages"])
-            if(json_response.get("task_finished")):
-                return json_response
-            else:
-                print(f"""
-                --------------------------------------
-                        Task not finished
-                        {json_response}
-                --------------------------------------
-                """)
-                json_response["messages"]=messages
-                if(json_response["step"]>self.max_recursion_depth and not json_response.get("step_failed")):
-                    return json_response
-                else:
-                    return self.mcp.mcp_completion(
-                        messages=json.dumps(json_response),
-                        model_type="gemini",
-                        step=json_response["step"]
-                    )
-        except Exception as e:
-            print(f"Error in inner try: {e}")
-            return f"Error in inner try: {e}"
-        
-                
+class Session():
     def __init__(self, manager,websocket,session_id, max_tokens=150,temperature=0.7,max_recursion_depth=10):
         self.mcp = ModelContextProtocol(manager,session_id)
         self.manager = manager
@@ -398,87 +291,9 @@ class Session:
         self.max_tokens = max_tokens
         self.temperature = temperature
         self.max_recursion_depth = max_recursion_depth
-        self.conversation_history = []
-        self.messages = []
-        self.task=None
-       # asyncio.create_task(self.ws_handler())
-        asyncio.create_task(self.greeting_msg())
-    
-
-        
-        
-        
-        
-    # async def ws_handler(self,):
-    #     data = await self.manager.receive_text(self.websocket)
-
-    #     async def loop():
-    #         while True:
-    #             if data is None:
-    #                 break  # Exit the loop if the WebSocket is disconnected
-    #             try:
-    #                 message = json.loads(data)
-    #                 if message.get('type') == 'request_session':
-    #                     session_request_message = f"Session requested from {self.session_id}"
-    #                     print(session_request_message)
-    #                     await self.send_message(session_request_message)
-    #                     # Session creation is already handled above, so no need to do anything here
-    #                     await self.send_message("Session created successfully")
-    #                 else:
-    #                     print(f"Received message from {self.session_id}: {data}")
-    #                     await self.send_message(f"Server received: {data}")
-    #             except json.JSONDecodeError:
-    #                 logger.error(f"Invalid JSON received from {self.session_id}: {data}")
-    #                 await self.send_message("Invalid JSON format")
-    #     await loop()
-                
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-# ----------------> Examples <-------------------
-        
-        
-    # def get_openwebui_client(self):
-    #     if not self.models["openwebui"]["api_key"]:
-    #         raise ValueError("OPENWEBUI_API_KEY environment variable not set")
-    #     class OpenWebUIClient:
-    #         def __init__(self, host, api_key):
-    #             self.host = host
-    #             self.headers = {
-    #                 "Content-Type": "application/json",
-    #                 "Authorization": f"Bearer {api_key}",
-    #             }
-    #         def chat(self, model, messages, temperature=0.7, max_tokens=150):
-    #             url = f"{self.host}/api/chat/completions"
-    #             payload = {
-    #                 "model": model,
-    #                 "messages": messages,
-    #                 "temperature": temperature,
-    #                 "max_tokens": max_tokens,
-    #             }
-    #             try:
-    #                 response = requests.post(url, headers=self.headers, json=payload)
-    #                 response.raise_for_status()
-    #                 return response.json()
-    #             except Exception as e:
-    #                 logger.error(f"Failed to connect to {self.host}: {str(e)}")
-    #                 raise
-    #     client = OpenWebUIClient(self.OPENWEBUI_HOST, self.OPENWEBUI_API_KEY)
-    #     # Test connection
-    #     logger.debug(f"Testing connection to OpenWebUI server at {self.OPENWEBUI_HOST}")
-    #     try:
-    #         response = client.chat(
-    #             model="deepseek/chat_V3", messages=[{"role": "system", "content": "connection test"}]
-    #         )
-    #         logger.info(f"Successfully connected to {self.OPENWEBUI_HOST}")
-    #     except Exception as e:
-    #         logger.error(f"Failed to connect to {self.OPENWEBUI_HOST}: {str(e)}")
-    #         raise
-    #     return client
+        flow = Advisor1(session=self,mcp=self.mcp,websocket=self.websocket,manager=self.manager,session_id=self.session_id)
+        result = flow.kickoff()
+        print(f"Generated fun fact: {result}")
+    def compl_send_await(self,msg):
+        resp=compl_send_await(self.websocket,self.mcp,self.manager,self.session_id,msg)
+        return resp
