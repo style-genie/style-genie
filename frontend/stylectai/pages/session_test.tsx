@@ -22,23 +22,66 @@ interface TaskResponse {
   step_failed: boolean;
 }
 
+/**
+ * A simple chat interface for interacting with a task server.
+ *
+ * The component renders a card with a header, content area, and footer. The
+ * content area displays a scrollable list of messages, and the footer contains
+ * a text input and a send button.
+ *
+ * When the user submits a message, the component sends the message to the task
+ * server and adds it to the list of messages.
+ *
+ * The component also displays the current task status, if any, in the content
+ * area.
+ *
+ * The component expects the following props:
+ *
+ * - `taskId`: The ID of the task to interact with. If not provided, the
+ *   component will connect to the task server as a guest.
+ */
 const ChatInterface: React.FC = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [taskId, setTaskId] = useState<string | null>(null);
   const [taskResponse, setTaskResponse] = useState<TaskResponse | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const client= useRef<WebSocket|null>(null);
 
-  // WebSocket-Verbindung herstellen
+  // useEffect(() => {
+  //   const ws = new WebSocket(`ws://localhost:1500/ws/${taskId || 'guest'}`);
+  //   ws.onmessage = (event) => {
+  //     const data = JSON.parse(event.data);
+  //     console.log(data);
+  //   }
+  //   client.current = ws;
+  // }, []);
   useEffect(() => {
-    const ws = new WebSocket(`ws://localhost:8000/ws/${taskId || 'guest'}`);
-    
+    // const ws = client.current;
+    // if (!ws) return;
+
+    const ws = new WebSocket(`ws://localhost:1500/ws/${taskId || 'guest'}`);
+    ws.onopen = () => {
+      ws.send(JSON.stringify({ type: 'request_session' }));
+    };
+
     ws.onmessage = (event) => {
+      
       const data = JSON.parse(event.data);
+      console.log(event)
+      setMessages(prev => [...prev, {
+        role: 'system',
+        content: data.message,
+        timestamp: new Date().toISOString()
+      }]);
       if (data.task_id) {
         setTaskId(data.task_id);
       } else if (data.messages) {
-        setMessages(data.messages);
+        setMessages(prev => [...prev, {
+          role: 'system',
+          content: data.message,
+          timestamp: new Date().toISOString()
+        }]);
       } else if (data.achievements) {
         setTaskResponse(data);
       }
@@ -46,13 +89,20 @@ const ChatInterface: React.FC = () => {
     return () => ws.close();
   }, [taskId]);
 
-  // Automatisches Scrollen zum letzten Nachrichten
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [messages]);
 
+  /**
+   * Handles the submission of a message by the user.
+   *
+   * When the user submits a message, the component adds the message to the list
+   * of messages and resets the input field.
+   *
+   * @param {React.FormEvent} e The form event.
+   */
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim()) return;
@@ -62,6 +112,8 @@ const ChatInterface: React.FC = () => {
       content: input,
       timestamp: new Date().toISOString()
     }]);
+
+    client.current?.send(input);
     setInput('');
   };
 

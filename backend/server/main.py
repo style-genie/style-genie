@@ -79,10 +79,6 @@ cookie = SessionCookie(
 )
 
 backend = InMemoryBackend[UUID, SessionData]()
-
-
-
-
 @dataclass
 class Task:
     id: str
@@ -98,7 +94,7 @@ class ConnectionManager:
     async def connect(self, websocket: WebSocket, session_id: str):
         await websocket.accept()
         self.active_connections[session_id] = websocket
-        
+
     def disconnect(self, session_id: str):
         if session_id in self.active_connections:
             del self.active_connections[session_id]
@@ -106,12 +102,21 @@ class ConnectionManager:
     async def send_personal_message(self, session_id: str, message: dict):
         if session_id in self.active_connections:
             await self.active_connections[session_id].send_json(message)
+        else:
+            raise WebSocketDisconnect(code=404, reason="Session not found")
 
     async def broadcast_task_update(self, task_id: str, status: str, progress: float):
         update = {"task_id": task_id, "status": status, "progress": progress}
         for ws in self.active_connections.values():
             await ws.send_json(update)
 
+    async def receive_text(self, websocket: WebSocket):
+        """Receives text from the WebSocket in a parallel async task and returns a promise."""
+        try:
+            data = await websocket.receive_text()
+            return data
+        except WebSocketDisconnect:
+            return None
 manager = ConnectionManager()
 
 async def stream_task_progress(task_id: str):
@@ -125,98 +130,16 @@ async def stream_task_progress(task_id: str):
             })
         await asyncio.sleep(1)
 
-class TaskRequest(BaseModel):
-    session_id: str
-    model: str
-    max_tokens: int
-    temperature: float
-    max_recursion_depth: int
-
-@app.post("/start_task")
-async def start_task(request: TaskRequest):
-    task_id = str(uuid4())
-    task = Task(
-        id=task_id,
-        status="pending",
-        progress=0.0,
-        children=[]
-    )
-    manager.tasks[task_id] = task
-    
-    async def execute_recursive_tasks(task: Task, depth: int = 0):
-        # Hier Ihre rekursive Logik implementieren
-        await asyncio.sleep(1)  # Simuliere Arbeit
-        
-        # Fortschritt aktualisieren
-        task.progress += 25
-        await manager.broadcast_task_update(task.id, task.status, task.progress)
-        
-        if depth < request.max_recursion_depth:
-            child_task = Task(
-                id=str(uuid4()),
-                status="pending",
-                progress=0.0,
-                children=[]
-            )
-            task.children.append(child_task)
-            
-            # Rekursiver Aufruf
-            await execute_recursive_tasks(child_task, depth + 1)
-            
-            # Fortschritt aktualisieren
-            task.progress += 25
-            await manager.broadcast_task_update(task.id, task.status, task.progress)
-    
-    # Task im Hintergrund ausführen
-    asyncio.create_task(execute_recursive_tasks(task))
-    
-    return {"task_id": task_id}
-
-@app.websocket("/ws/{session_id}")
-async def websocket_endpoint(websocket: WebSocket, session_id: str):
-    await manager.connect(websocket, session_id)
-    
-    try:
-        while True:
-            data = await websocket.receive_text()
-            # Hier können Sie Nachrichten vom Client verarbeiten
-            await manager.send_personal_message(session_id, {"message": "Received"})
-    except WebSocketDisconnect:
-        manager.disconnect(session_id)
-
-@app.get("/stream_progress/{task_id}")
-async def stream_progress(task_id: str):
-    return StreamingResponse(stream_task_progress(task_id))
-
-
-
-
-
-
-
-
-
 @app.post("/create_session/{name}")
 async def create_session(name: str, response: Response):
-
     session = uuid4()
     data = SessionData(username=name)
-
     await backend.create(session, data)
     cookie.attach_to_response(response, session)
-
     return f"created session for {name}"
 
 # ------> CREATE_AGENT_SESSION <----------
-class create_agent_session_args(BaseModel):
-    user: str
-    model: str
-    max_tokens: int
-    temperature: float
-    max_recursion_depth: int
-    
-@app.get("/create_agent_session")
-async def create_agent_session(response_model=create_agent_session_args):
+def create_agent_session(manager,websocket, session_id, args={}):
     """Creates a agent new session.
     Args:
         model (str): The model to use (e.g., local_ollama, gemini, openwebui).
@@ -230,43 +153,37 @@ async def create_agent_session(response_model=create_agent_session_args):
     Returns:
         a session id
     """
-
-    session_id = len(Sessions)
-    session = Session(max_tokens=response_model.max_tokens,temperature=response_model.temperature,max_recursion_depth=response_model.max_recursion_depth)
+    session = Session(manager,websocket, session_id=session_id, **args)
     Sessions.append(session)
-    return {"session_id": str(session_id)}
-
-
-
-
-    # response=StreamingResponse(
-    # content,
-    # status_code=200,
-    # headers=None,
-    # media_type=None,
-    # background=None,
-    # )
-# ------> TEST_VECTOR_DB <----------
-class test_vector_db_args(BaseModel):
-    query: str
-    session_id: int
     
-@app.get("/test_vector_db", response_model=test_vector_db_args)
-async def test_vector_db(response_model):
-    """Tests the vector database.
-    Args:
-        session_id (int): The session id.
-        query (str): The query to use to test the vector database (e.g., "What is a good casual outfit?").
-        
-    Example:
-        curl "http://localhost:1500/test_vector_db?query=shoes%20trousers?"
-
-    Returns:
-        a json object: {"result": str(result)}
-    """
-    
-    result = Sessions[response_model.session_id].mcp.fetch_elements_from_vector_db(response_model.query)
-    return {"recommendation": str(result)}
+@app.websocket("/ws/{session_id}")
+async def websocket_endpoint(websocket: WebSocket, session_id: str):
+    await manager.connect(websocket, session_id)
+    try:
+        create_agent_session(manager,websocket,session_id=session_id)
+        await asyncio.sleep(100)
+        #data = await manager.receive_text(websocket)
+        # while True:
+            
+        #     if data is None:
+        #         break  # Exit the loop if the WebSocket is disconnected
+        #     try:
+        #         message = json.loads(data)
+        #         if message.get('type') == 'request_session':
+        #             logger.info(f"Session requested from {session_id}")
+        #             # Session creation is already handled above, so no need to do anything here
+        #             await manager.send_personal_message(session_id, {"message": "Session created successfully"})
+        #         else:
+        #             logger.info(f"Received message from {session_id}: {data}")
+        #             await manager.send_personal_message(session_id, {"message": f"Server received: {data}"})
+        #         
+            # except json.JSONDecodeError:
+                # logger.error(f"Invalid JSON received from {session_id}: {data}")
+    except WebSocketDisconnect:
+        manager.disconnect(session_id)
+    except Exception as e:
+        logger.error(f"Error creating agent session: {e}")
+        manager.disconnect(session_id)
 
 
 # ------> Compose  <------
@@ -315,7 +232,23 @@ if __name__ == "__main__":
     )
 
 
+# # ------> TEST_VECTOR_DB <----------
+# class test_vector_db_args(BaseModel):
+#     query: str
+#     session_id: int
+# @app.get("/test_vector_db", response_model=test_vector_db_args)
+# async def test_vector_db(response_model):
+#     """Tests the vector database.
+#     Args:
+#         session_id (int): The session id.
+#         query (str): The query to use to test the vector database (e.g., "What is a good casual outfit?").
+        
+#     Example:
+#         curl "http://localhost:1500/test_vector_db?query=shoes%20trousers?"
 
-
-
-
+#     Returns:
+#         a json object: {"result": str(result)}
+#     """
+    
+#     result = Sessions[response_model.session_id].mcp.fetch_elements_from_vector_db(response_model.query)
+#     return {"recommendation": str(result)}
