@@ -28,7 +28,7 @@
 | Layer               | Technology                                 |
 |---------------------|--------------------------------------------|
 | **Backend API**     | Python · FastAPI ·                         |
-| **AI Models**       | LLM for creating outfit context            |
+| **AI Models**       | LitELLM + CrewAI                           |
 | **Vector Search**   | Pinecone                                   |
 | **Object Storage**  | Appache Ozone (s3 Bucket)                  |
 | **Database**        | Postgres if needed                         |

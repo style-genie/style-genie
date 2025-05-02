@@ -9,7 +9,6 @@ A Python FastAPI server
 * Container Registry
 * Compute instance
 
-
 ## Clone the repo
 
 Connect your host to GitHub
@@ -24,6 +23,16 @@ Connect your host to GitHub
 ```shell
 git clone git@github.com:style-genie/style-genie.git
 ```
+
+
+## Conda 
+
+* `conda update python`
+* `conda install python=3.11`
+* `conda create -n stylegenie python=3.11`
+* `conda activate stylegenie`
+* `pip install -r requirements.txt`
+
 
 ## Copy the environment variables to the project root
 
@@ -129,18 +138,6 @@ docker rm $(docker ps -a -q)
 # Run image in detached mode
 docker run -d --name $CONTAINER_NAME -p 80:80 $DOMAIN/$CR/$IMAGE_NAME
 
-## Example Query
 
 
-## Using the MCP
-
-To get a clothing recommendation, you can use the following curl command:
-
-```shell
-curl "http://localhost:1500/recommendation?query=What should I wear to a party?"
-
-To test the vector database, you can use the following curl command:
-
-```shell
-curl "http://localhost:1500/test_vector_db?query=good%20casual%20outfit?"
 ```
