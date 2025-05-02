@@ -85,7 +85,8 @@ class Task:
     status: str
     progress: float
     children: List['Task']
-
+    
+# ----------> WEBSOCKET MANAGER <----------
 class ConnectionManager:
     def __init__(self):
         self.active_connections: Dict[str, WebSocket] = {}
