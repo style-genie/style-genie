@@ -9,7 +9,6 @@ from pathlib import Path
 from dotenv import dotenv_values
 import asyncio
 from src.agent.workflows.advisor1 import Advisor1
-from crewai.flow.flow import Flow, listen, start
 
 
 tools = [
