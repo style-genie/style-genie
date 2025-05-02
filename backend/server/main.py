@@ -6,7 +6,7 @@ import dotenv
 import json
 import sys
 from src.ai.img_to_img import ImgToImg
-from backend.server.src.agent.session import Session
+from src.agent.session import Session
 from fastapi.middleware import cors
 from fastapi_sessions.frontends.implementations import SessionCookie, CookieParameters
 from fastapi_sessions.backends.implementations import InMemoryBackend

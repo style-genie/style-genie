@@ -64,12 +64,9 @@ class Advisor1(Flow):
         msg=[instruction_message,greeting_instruction]
         print("...........................................")
         user_input=asyncio.create_task(self.session.compl_send_await(msg))
-        print("\nReceived User Response---------------->\n")
-        print(user_input)
-        print("...........................................")
         return user_input    
         
-    @step()
+    @listen(start)
     async def get_user_input(self,user_input):
         print("\nReceived User Response---------------->\n")
         print(user_input)

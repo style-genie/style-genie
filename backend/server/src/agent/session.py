@@ -8,7 +8,7 @@ import sys
 from pathlib import Path
 from dotenv import dotenv_values
 import asyncio
-from backend.server.src.agent.workflows.advisor1 import Advisor1
+from src.agent.workflows.advisor1 import Advisor1
 from crewai.flow.flow import Flow, listen, start
 
 
@@ -281,6 +281,9 @@ class ModelContextProtocol:
 
 
 class Session():
+    def compl_send_await(self,msg):
+        resp=compl_send_await(self.websocket,self.mcp,self.manager,self.session_id,msg)
+        return resp
     def __init__(self, manager,websocket,session_id, max_tokens=150,temperature=0.7,max_recursion_depth=10):
         self.mcp = ModelContextProtocol(manager,session_id)
         self.manager = manager
@@ -291,9 +294,9 @@ class Session():
         self.max_tokens = max_tokens
         self.temperature = temperature
         self.max_recursion_depth = max_recursion_depth
+        
         flow = Advisor1(session=self,mcp=self.mcp,websocket=self.websocket,manager=self.manager,session_id=self.session_id)
+        
         result = flow.kickoff()
         print(f"Generated fun fact: {result}")
-    def compl_send_await(self,msg):
-        resp=compl_send_await(self.websocket,self.mcp,self.manager,self.session_id,msg)
-        return resp
+
