@@ -7,14 +7,11 @@ services:
     volumes:
       - ./backend/server:/app
     working_dir: /app
-    user: root
-    privileged: true
-
+    p
     command: bash -c "pip install /app/crewai-0.118.0.tar.gz && pip install -r requirements.txt && python main.py"
     ports:
       - "1500:1500"
     tty: true
-    
     environment:
       OPENAI_MODEL_NAME: ${OPENAI_MODEL_NAME}
       OPENAI_API_KEY: ${OPENAI_API_KEY}
@@ -39,6 +36,9 @@ services:
       - 8080:8080
     environment:
       POSTGRES_USER: stylegen
+      POSTGRES_PASSWORD: stylegen
+      POSTGRES_DB: main
+      POSTGRES_HOST_AUTH_METHOD: trust
       POSTGRES_PASSWORD: stylegen
       POSTGRES_DB: main
       POSTGRES_HOST_AUTH_METHOD: trust
