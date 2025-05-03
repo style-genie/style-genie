@@ -29,7 +29,8 @@ git clone git@github.com:style-genie/style-genie.git
 
 * `conda update python`
 * `conda install python=3.11`
-* `conda create -n stylegenie python=3.11`
+* `conda create -n genie`
+* `conda install -n genie python=3.11`
 * `conda activate stylegenie`
 * `pip install -r requirements.txt`
 
@@ -137,7 +138,5 @@ docker rm $(docker ps -a -q)
 
 # Run image in detached mode
 docker run -d --name $CONTAINER_NAME -p 80:80 $DOMAIN/$CR/$IMAGE_NAME
-
-
 
 ```
