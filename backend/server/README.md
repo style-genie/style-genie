@@ -33,6 +33,8 @@ git clone git@github.com:style-genie/style-genie.git
 * `conda install -n genie python=3.11`
 * `conda activate stylegenie`
 * `pip install -r requirements.txt`
+   - or * `python setup.py`
+
 
 
 ## Copy the environment variables to the project root

@@ -13,7 +13,8 @@ setup(
         'python-multipart==0.0.20',
         'openai==1.76.0',
         'litellm==1.67.5',
-        "fastapi-sessions==0.3.2"
+        "fastapi-sessions==0.3.2",
+        "crewai==0.5.0"
     ],
    entry_points={
         'console_scripts': [
