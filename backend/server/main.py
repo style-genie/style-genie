@@ -5,7 +5,7 @@ import os
 import dotenv
 import json
 import sys
-from src.ai.img_to_img import ImgToImg
+# from src.ai.img_to_img import ImgToImg
 from src.agent.session import Session
 from fastapi.middleware import cors
 from fastapi_sessions.frontends.implementations import SessionCookie, CookieParameters
@@ -187,37 +187,37 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str):
         manager.disconnect(session_id)
 
 
-# ------> Compose  <------
-class ComposeRequestBody(BaseModel):
-    user_img: str
-    clothing_item_img: str
-# Routes implementation
-@app.post("/compose")
-async def compose(
-    request_body: ComposeRequestBody,
-) -> bytes:
-    """Generates a composite image based on user image and clothing item.
+# # ------> Compose  <------
+# class ComposeRequestBody(BaseModel):
+#     user_img: str
+#     clothing_item_img: str
+# # Routes implementation
+# @app.post("/compose")
+# async def compose(
+#     request_body: ComposeRequestBody,
+# ) -> bytes:
+#     """Generates a composite image based on user image and clothing item.
 
-    Args:
-        request_body (ComposeRequestBody): The request body containing the user image and clothing item image.
+#     Args:
+#         request_body (ComposeRequestBody): The request body containing the user image and clothing item image.
 
-    Returns:
-        bytes: The generated composite image.
-    """
-    logger.info("Start %s ...", "compose")
-    # Decode base64 string into bytes and wrap in a BytesIO with a proper file name and extension.
-    user_img_file = io.BytesIO(base64.b64decode(request_body.user_img))
-    user_img_file.name = "user_img.png"  # Ensure a supported image format
-    clothing_item_img_file = io.BytesIO(base64.b64decode(request_body.clothing_item_img))
-    clothing_item_img_file.name = "clothing_item_img.png"  # Ensure a supported image format
-    # generate composit image
-    img_to_img = ImgToImg()
-    return img_to_img.generate(
-        reference_img_list=[
-            user_img_file,
-            clothing_item_img_file,
-        ],
-    )
+#     Returns:
+#         bytes: The generated composite image.
+#     """
+#     logger.info("Start %s ...", "compose")
+#     # Decode base64 string into bytes and wrap in a BytesIO with a proper file name and extension.
+#     user_img_file = io.BytesIO(base64.b64decode(request_body.user_img))
+#     user_img_file.name = "user_img.png"  # Ensure a supported image format
+#     clothing_item_img_file = io.BytesIO(base64.b64decode(request_body.clothing_item_img))
+#     clothing_item_img_file.name = "clothing_item_img.png"  # Ensure a supported image format
+#     # generate composit image
+#     img_to_img = ImgToImg()
+#     return img_to_img.generate(
+#         reference_img_list=[
+#             user_img_file,
+#             clothing_item_img_file,
+#         ],
+#     )
 
 
 if __name__ == "__main__":

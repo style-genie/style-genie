@@ -1,13 +1,14 @@
-FROM python:3.11
+FROM python:3.10-slim
 
-WORKDIR /code
+WORKDIR /app
 
-COPY ./requirements.txt /code/requirements.txt
+COPY . .
 
-RUN pip install --no-cache-dir --upgrade -r /code/requirements.txt
+RUN wget https://files.pythonhosted.org/packages/c0/71/5321cd921e783288453c441fe4bbe05c0adefbf95ffa0954df3f3bac34cc/crewai-0.118.0.tar.gz
 
-COPY ./src /code/src
-COPY .env.local .env.local
+RUN pip install /app/crewai-0.118.0.tar.gz
 
+RUN pip install -r requirements.txt
 
-CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "80"]
+CMD ["python", "main.py"]
+
