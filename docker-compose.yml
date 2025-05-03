@@ -1,12 +1,20 @@
 version: "3.8"
 
 services:
+
   backend:
-    build:
-      context: ./backend/server
-      dockerfile: Dockerfile
+    image: python:3.10
+    volumes:
+      - ./backend/server:/app
+    working_dir: /app
+    user: root
+    privileged: true
+
+    command: bash -c "pip install /app/crewai-0.118.0.tar.gz && pip install -r requirements.txt && python main.py"
     ports:
       - "1500:1500"
+    tty: true
+    
     environment:
       OPENAI_MODEL_NAME: ${OPENAI_MODEL_NAME}
       OPENAI_API_KEY: ${OPENAI_API_KEY}
