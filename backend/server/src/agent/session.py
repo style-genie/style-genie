@@ -9,56 +9,18 @@ from pathlib import Path
 from dotenv import dotenv_values
 import asyncio
 from src.agent.workflows.advisor1 import Advisor1
-
-
-tools = [
-                {
-                    "type": "function",
-                    "function": {
-                        "name": "fetch_elements_from_vector_db",
-                        "description": "Get the JSON element with the specified ID",
-                        "parameters": {
-                            "type": "object",
-                            "properties": {
-                                "query": {
-                                    "type": "string",
-                                    "description": "keywords for the semantic search",
-                                },
-                                "unit": {"type": "string"},
-                            },
-                            "required": ["query"],
-                        },
-                    },
-                },
-                {
-                    "type": "function",
-                    "function": {
-                        "name": "get_json_element_by_id",
-                        "description": "get json element by id",
-                        "parameters": {
-                            "type": "object",
-                            "properties": {
-                                "id": {
-                                    "type": "string",
-                                    "description": "Die ID des gesuchten Elements",
-                                },
-                            },
-                            "required": ["id"],
-                            "additionalProperties": False,
-                        },
-                    },
-                },
-            ]
+from src.agent.tools import tools, fetch_elements_from_vector_db, get_json_element_by_id,init_user_database, read_user_data, write_user_data
 # the reason i have this function here is that mcp functions can call this too
 async def compl_send_await(websocket,mcp,manager,session_id,msg,model_id="open_router_palm2"):
     print(msg)
-    question= mcp.mcp_completion(
+    question= mcp.completion(
                     messages=msg,
                     model=model_id,
-                )["response"].content
+                )
+    
     # tell the user you want something
     print("\nAsking user for responce about:---------------->\n")
-    print(question)
+    print(question["response"].content)
     asyncio.create_task(manager.send_personal_message(session_id, {"message": question})) 
     response = await websocket.receive_text()
     print("\nReceived User Response---------------->\n")
@@ -68,8 +30,7 @@ async def compl_send_await(websocket,mcp,manager,session_id,msg,model_id="open_r
 config = dotenv_values(Path(__file__).parent.parent.parent / ".env")
 for key, value in config.items():
     os.environ[key] = value
-with open("./../../data/data.json", "r", encoding="utf-8") as f:
-    data = json.load(f)
+
 class ModelContextProtocol:
     def error(self,error):
         if(self.manager):
@@ -80,6 +41,12 @@ class ModelContextProtocol:
         self.models = {}
         self.session_id = session_id
         self.manager = manager
+        #   ----------> CHECKING IF POStGRES ENV IS SET <----------
+        self.POSTGRES_USER=os.environ.get("POSTGRES_USER","stylegen")
+        self.POSTGRES_PASSWORD=os.environ.get("POSTGRES_PASSWORD","stylegen")
+        self.POSTGRES_DB=os.environ.get("POSTGRES_DB","main")
+        if(self.POSTGRES_USER == ""):
+            self.error("POSTGRES environment variables not set")
         #   ----------> CHECKING IF PINECONE_API_KEY IS SET <----------
         self.PINECONE_API_KEY = os.environ.get("PINECONE_API_KEY", "")
         if(self.PINECONE_API_KEY == ""):
@@ -87,27 +54,22 @@ class ModelContextProtocol:
         self.INDEX_HOST = os.environ.get("INDEX_HOST", "" )
         if self.INDEX_HOST == "":
             self.error("INDEX_HOST environment variable not set")
-
         self.NAMESPACE = os.environ.get("NAMESPACE", "__default__")
-        
         #   ----------> CHECKING IF OPENROUTER_API_KEY IS SET <----------
         OPENROUTER_API_KEY=os.environ.get("OPENROUTER_API_KEY","")
         OPENROUTER_API_BASE=os.environ.get("OPENROUTER_API_BASE","https://openrouter.ai/api/v1")
         if OPENROUTER_API_KEY != "" and OPENROUTER_API_KEY is not None:
             self.register_provider("open_router",OPENROUTER_API_BASE,OPENROUTER_API_KEY,"openrouter")
-
         #   ----------> CHECKING IF OLLAMA_HOST IS SET <----------
         OLLAMA_HOST = os.environ.get("OLLAMA_HOST", "http://localhost:11434")
         OLLAMA_API_KEY = os.environ.get("OLLAMA_API_KEY", "")
         if OLLAMA_API_KEY != "":
             self.register_provider("ollama_local",OLLAMA_HOST,OLLAMA_API_KEY,"ollama")
-
         #   ----------> CHECKING IF OPENWEBUI_HOST IS SET <----------
         OPENWEBUI_HOST = os.environ.get("OPENWEBUI_HOST", "https://chat.kxsb.org/ollama")
         OPENWEBUI_API_KEY = os.environ.get("OPENWEBUI_API_KEY", "")
         if OPENWEBUI_API_KEY != "":
             self.register_provider("openwebui",OPENWEBUI_HOST,OPENWEBUI_API_KEY,"openwebui")
-            
         #   ----------> CHECKING IF GEMINI_HOST IS SET <----------
         GEMINI_HOST = os.environ.get("GEMINI_HOST", "")
         GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "" )
@@ -142,67 +104,7 @@ class ModelContextProtocol:
         except Exception as e:
             print(f"Failed to register host {provider}: {e}")
             sys.exit(1)
-    def fetch_elements_from_vector_db(self, query):
-        """Fetches elements from the vector database based on the given query."""
-        top_k = 2
-        if not query:
-            return {"error": "Query must be provided in the request."}
-        # Construct the curl command
-        curl_command = f"""curl "https://{self.INDEX_HOST}/records/self.NAMESPACEs/{self.NAMESPACE}/search" \
-          -H "Accept: application/json" \
-          -H "Content-Type: application/json" \
-          -H "Api-Key: {self.PINECONE_API_KEY}" \
-          -H "X-Pinecone-API-Version: unstable" \
-          -d '{{"query": {{"inputs": {{"text": "{query}"}}, "top_k": {top_k} }}, "fields": ["text"] }}'"""
-        # Execute the curl command
-        process = subprocess.Popen(
-            curl_command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
-        )
-        stdout, stderr = process.communicate()
-        # Check for errors
-        if stderr:
-            print(f"Curl Error: {stderr.decode()}")
-            return {"error": stderr.decode()}
-        print(stdout.decode())
-        results = json.loads(stdout.decode())
-        formatted_results = []
-        for match in results["result"]["hits"]:
-            index = match["_id"]
-            print(index)
-            score = match["_score"]
-            print(score)
-            item = {
-                "score": score,
-                **(data[int(index)]),
-            }
-            print(item)
-            print("--------------------------")
-            formatted_results.append(item)
-        return formatted_results
-    def get_json_element_by_id(self, id):
-        """Gets a JSON element from the file based on the ID."""
-        try:
-            with open("../data.json", "r") as f:
-                data = json.load(f)
-            def find_element(obj, target_id):
-                if isinstance(obj, dict):
-                    if obj.get("id") == target_id:
-                        return obj
-                    for value in obj.values():
-                        result = find_element(value, target_id)
-                        if result:
-                            return result
-                elif isinstance(obj, list):
-                    for item in obj:
-                        result = find_element(item, target_id)
-                        if result:
-                            return result
-                return None
-            return find_element(data, id)
-        except FileNotFoundError:
-            return {"error": "Datei nicht gefunden"}
-        except json.JSONDecodeError:
-            return {"error": "Ungültiges JSON"}
+   
     def completion(self, messages, model="open_router_palm2",ignored_tools=[]):
         """Tests parallel function calling."""
         
@@ -248,9 +150,12 @@ class ModelContextProtocol:
                 # Step 3: call the function
                 # Note: the JSON response may not always be valid; be sure to handle errors
                 available_functions = {
-                    "get_json_element_by_id": self.get_json_element_by_id,
-                    "fetch_elements_from_vector_db": self.fetch_elements_from_vector_db,
-                }  # only one function in this example, but you can have multiple
+                    "get_json_element_by_id": get_json_element_by_id,
+                    "fetch_elements_from_vector_db": fetch_elements_from_vector_db,
+                    "init_user_database":init_user_database, 
+                    "read_user_data":read_user_data, 
+                    "write_user_data":write_user_data
+                }  
                 messages.append(response_message)  # extend conversation with assistant's reply
                 # Step 4: send the info for each function call and function response to the model
                 for tool_call in tool_calls:
@@ -295,7 +200,16 @@ class Session():
         self.max_recursion_depth = max_recursion_depth
         
         flow = Advisor1(session=self,mcp=self.mcp,websocket=self.websocket,manager=self.manager,session_id=self.session_id)
-        
-        result = flow.kickoff()
+        result =  flow
         print(f"Generated fun fact: {result}")
 
+# database_manager:
+#   role: >
+#     {topic} Senior Data Researcher
+#   goal: >
+#     Find the most relevant items using intelligent vector semantic search
+#   backstory: >
+#     You're a trained data analyst who accesses the vector database and finds the most relevant {topic} items.
+#     You want to help the user finding suiting items and therefore you know how to find the right keywords. 
+#     Known for your ability to find the most relevant
+#     information and present it in a clear and concise manner.

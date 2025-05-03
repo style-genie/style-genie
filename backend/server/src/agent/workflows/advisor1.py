@@ -8,7 +8,6 @@ import sys
 from pathlib import Path
 from dotenv import dotenv_values
 import asyncio
-from crewai.flow.flow import Flow, listen, start
 instruction_message ={"role": "system", "content": "you are a friendly assistant"}
 instruction_message2 ={"role": "system", "content": """
                     You are a fashion instructor. 
@@ -46,29 +45,25 @@ instruction_message2 ={"role": "system", "content": """
                         }
                     """
 }
-class Advisor1(Flow):
+
+class Advisor1():
+    def greeting_msg(self):
+        greeting_instruction= {"role": "system", "content": "You are a helpful assistant. Say Hello to the user, Introduce yourself. Describe the app. Describe how you would like to help him and what the next steps are that you have planned. You need to access the vector DB in the next steps to find outfits and shopping items. the user needs to provide personal data."}
+        msg=[instruction_message,greeting_instruction]
+        print("...........................................")
+        user_input=asyncio.create_task(self.session.compl_send_await(msg))
+        return user_input    
+    
     def __init__(self,session,mcp,websocket,manager,session_id):
         self.session = session
         self.mcp = mcp
         self.websocket = websocket
         self.manager = manager
         self.session_id = session_id
-        #   ----------> CHECKING IF ENV IS SET <----------
-        config = dotenv_values(Path(__file__).parent.parent.parent / ".env")
-        for key, value in config.items():
-            os.environ[key] = value
-    
-    @start()
-    async def greeting_msg(self):
-        greeting_instruction= {"role": "system", "content": "You are a helpful assistant. Say Hello to the user, Introduce yourself. Describe the app. Describe how you would like to help him and what the next steps are that you have planned. You need to access the vector DB in the next steps to find outfits and shopping items. the user needs to provide personal data."}
-        msg=[instruction_message,greeting_instruction]
-        print("...........................................")
-        user_input=asyncio.create_task(self.session.compl_send_await(msg))
-        return user_input    
+        user=self.greeting_msg()
+        print(user)
         
-    @listen(start)
-    async def get_user_input(self,user_input):
-        print("\nReceived User Response---------------->\n")
-        print(user_input)
-        print("...........................................")
-        return user_input
+     
+	
+    
+        

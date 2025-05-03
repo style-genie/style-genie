@@ -14,7 +14,8 @@ setup(
         'openai==1.76.0',
         'litellm==1.67.5',
         "fastapi-sessions==0.3.2",
-        "crewai==0.5.0"
+        "crewai==0.118.0",
+        "mysql-connector-python==9.3.0"
     ],
    entry_points={
         'console_scripts': [
