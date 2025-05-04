@@ -9,18 +9,16 @@ from pathlib import Path
 from dotenv import dotenv_values
 import asyncio
 from src.agent.workflows.advisor1 import Advisor1
-from src.agent.tools import tools, fetch_elements_from_vector_db, get_json_element_by_id,init_user_database, read_user_data, write_user_data,wiki,internet_search_tool
-default_provider="openrouter"
-default_model="openrouter_maverick"
+from src.agent.tools import tools, fetch_elements_from_vector_db, get_json_element_by_id,init_user_database, read_user_data, write_user_data
+default_provider="gemini"
+default_model="gemini"
 # the reason i have this function here is that mcp functions can call this too
-async def send(websocket,mcp,manager,session_id,msg,model_id=default_model,args):
-    asyncio.create_task(manager.send_personal_message(session_id, {"message": msg})) 
-async def compl_send_await(websocket,mcp,manager,session_id,msg,model_id=default_model,args):
+async def compl_send_await(websocket,mcp,manager,session_id,msg,model_id=default_model):
     print(msg)
     question= mcp.completion(
                     messages=msg,
-                    model_id=model_id,
-                )["response"]
+                    model=model_id,
+                )
     
     # tell the user you want something
     print("\nAsking user for responce about:---------------->\n")
@@ -117,79 +115,81 @@ class ModelContextProtocol:
             print(f"Failed to register host {provider}: {e}")
             sys.exit(1)
    
-    def completion(self, messages, model_id=default_model,ignored_tools=[]):
+    def completion(self, messages, model=default_model,ignored_tools=[]):
         """Tests parallel function calling."""
-        print(self.models[model_id])
-        model=self.models[model_id]['model']
-        provider=self.models[model_id]['provider']
-        allow_tools=self.models[model_id]['tools']
-        print("-----------------------------------------")
-        print(f"model: {model_id}")
-        
-        print(f"baseurl: {self.models[model_id]['base_url']}")#gemini/gemini-2.0-flash-001
-        args={
-            "model":model,
-            "messages":messages,
-            "api_key":self.models[model_id]["api_key"],
-        }
-            # Convert to dictionary
-        if(provider=="open_router"):
-            args["base_url"]=self.models[model_id]["base_url"] if "base_url" in self.models[model_id] else None
-        if(allow_tools):
-            print("------------------TOOOOLS-----------------------")
-            args["tools"] = tools
-            args["tool_choice"] = "auto"
-            #tools=tools,#[tool for tool in tools if tool['function']['name'] not in ignored_tools], # Filter tools here
-        response = litellm.completion(**args,)
-        response = dict(response)
+        print(self.models[model])
         try:
-            response_message = response["choices"][0]
-            print("------------------R-----------------------")
-            print("\nLLM Response:\n")
-            print(response_message.message.content)
-            print("------------------R----------------------")
+            model=self.models[model]['model']
+            allow_tools=self.models[model]['tools']
+            print("-----------------------------------------")
+            print(f"model: {model}")
+            
+            print(f"baseurl: {self.models[model]['base_url']}")#gemini/gemini-2.0-flash-001
+            args={
+                "model":model,
+                "messages":messages,
+                "api_key":self.models[model]["api_key"],
+            }
+              # Convert to dictionary
+            if(model=="open_router"):
+                args["base_url"]=self.models[model]["base_url"] if "base_url" in self.models[model] else None
+            if(allow_tools):
+                args["tools"] = tools
+                args["tool_choice"] = "auto"
+                #tools=tools,#[tool for tool in tools if tool['function']['name'] not in ignored_tools], # Filter tools here
+            response = litellm.completion(**args,)
+            response = dict(response)
+            try:
+                response_message = response["choices"][0].message
+                json_response = response_message# json.loads(response_message)    
+                print("------------------R-----------------------")
+                print("\nLLM Response:\n")
+                print(response_message.content)
+                print("------------------R----------------------")
+            except Exception as e:
+                print("------------------E-----------------------")
+                print(e)
+                print("------------------E-----------------------")
+                return {"error": "Unexpected response format from the model."}
+            
+            # Step 2: check if the model wanted to call a function
+            if allow_tools and tool_calls:
+                tool_calls =  response_message.tool_calls if allow_tools  else 0
+                print("\nLength of tool calls", len(tool_calls))
+                # Step 3: call the function
+                # Note: the JSON response may not always be valid; be sure to handle errors
+                available_functions = {
+                    "get_json_element_by_id": get_json_element_by_id,
+                    "fetch_elements_from_vector_db": fetch_elements_from_vector_db,
+                    "init_user_database":init_user_database, 
+                    "read_user_data":read_user_data, 
+                    "write_user_data":write_user_data
+                }  
+                messages.append(response_message)  # extend conversation with assistant's reply
+                # Step 4: send the info for each function call and function response to the model
+                for tool_call in tool_calls:
+                    function_name = tool_call.function.name
+                    function_to_call = available_functions[function_name]
+                    function_args = json.loads(tool_call.function.arguments)
+                    if function_name == "get_json_element_by_id":
+                        function_response = function_to_call(id=function_args.get("id"))
+                    else:
+                        function_response = function_to_call(query=function_args.get("query"))
+                    messages.append(
+                        {
+                            "tool_call_id": tool_call.id,
+                            "role": "tool",
+                            "name": function_name,
+                            "content": function_response,
+                        }
+                    )  # extend conversation with function response
+            # json_response["messages"] = messages
+            
+            # json_response["step"] = step+1
+            return {"response":response_message,"messages":messages}
         except Exception as e:
-            print("------------------E-----------------------")
-            print(e)
-            print("------------------E-----------------------")
-            return {"error": "Unexpected response format from the model."}
-        
-        # Step 2: check if the model wanted to call a function
-        tool_calls =  response["choices"][0].message.tool_calls if allow_tools  else 0
-        print("\nLength of tool calls", (tool_calls))
-        if tool_calls and tool_calls!=0:
-
-            # Step 3: call the function
-            # Note: the JSON response may not always be valid; be sure to handle errors
-            available_functions = {
-                "get_json_element_by_id": get_json_element_by_id,
-                "fetch_elements_from_vector_db": fetch_elements_from_vector_db,
-                "init_user_database":init_user_database, 
-                "read_user_data":read_user_data, 
-                "write_user_data":write_user_data,
-                "wiki":wiki,
-                "internet_search_tool":internet_search_tool,
-            }  
-            messages.append(response_message)  # extend conversation with assistant's reply
-            # Step 4: send the info for each function call and function response to the model
-            for tool_call in tool_calls:
-                function_name = tool_call.function.name
-                print(f"model wants to call {function_name}")
-                function_to_call = available_functions[function_name]
-                function_args = json.loads(tool_call.function.arguments)
-                function_response = function_to_call(**function_args)
-                messages.append(
-                    {
-                        "tool_call_id": tool_call.id,
-                        "role": "tool",
-                        "name": function_name,
-                        "content": function_response,
-                    }
-                )  # extend conversation with function response
-        # json_response["messages"] = messages
-        
-        # json_response["step"] = step+1
-        return {"response":response_message.message.content,"messages":messages}
+            logger.error(f"Error in inner try: {e}")
+            return {"response": str(e)}
 
 
 
