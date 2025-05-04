@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Send } from 'lucide-react';
-import { Menu, Settings } from 'lucide-react';
+import { Menu, Settings, Check } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { deleteCookie } from 'cookies-next';
 import { useRouter } from 'next/router';
@@ -52,6 +52,8 @@ const ChatInterface: React.FC = () => {
   const [shoes, setShoes] = useState(false);
   const [trousers, setTrousers] = useState(false);
   const [jackets, setJackets] = useState(false);
+  const [imageLinks, setImageLinks] = useState<string[]>([]);
+  const [newImageLink, setNewImageLink] = useState('');
 
   useEffect(() => {
     const ws = new WebSocket(`ws://localhost:1500/ws/${taskId || 'guest'}`);
@@ -161,7 +163,7 @@ const ChatInterface: React.FC = () => {
             )}
 
             <form onSubmit={handleSubmit} className="mt-4 flex gap-2">
-             <div className="w-[280%]"> <Input
+              <div className="w-[280%]"> <Input
                 type="text"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
@@ -169,10 +171,10 @@ const ChatInterface: React.FC = () => {
                 className="flex-1"
               />
               </div>
-              
-              <Button type="submit"  class="w-[10%] flex items-center justify-center rounded-2xl">
+
+              <Button type="submit" className="w-[10%] flex items-center justify-center rounded-2xl">
                 <Send className="h-full " />
-                
+
               </Button>
             </form>
           </CardContent>
@@ -239,28 +241,52 @@ const ChatInterface: React.FC = () => {
               </TabsContent>
               <TabsContent value="userdata" className="h-full">
                 <ScrollArea className="h-full">
-                  <div>User Data Content</div>
+                  <div className="flex flex-col">
+
+                    <div className="mt-4">
+                      {imageLinks.map((link, index) => (
+                        <div key={index} className="relative">
+                          <img src={link} alt={`User Image ${index}`} className="w-32 h-32 object-cover" />
+                         <div className='w-1 h-1'>
+                          <Button
+                            onClick={() => {
+                              const newImageLinks = [...imageLinks];
+                              newImageLinks.splice(index, 1);
+                              setImageLinks(newImageLinks);
+                            }}
+                            className="absolute top-0 right-0 p-0.5 bg-gray-200 rounded-full hover:bg-gray-300 w-1"
+                          >
+                            <Check className="w-3 h-3" />
+                          </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="flex gap-2 align-start justify-start">
+                      <Input
+                        type="text"
+                        placeholder="Image Link"
+                        value={newImageLink}
+                        onChange={(e) => setNewImageLink(e.target.value)}
+                      />
+                      <Button onClick={() => {
+                        setImageLinks([...imageLinks, newImageLink]);
+                        setNewImageLink('');
+                      }}>Add Image</Button>
+                    </div>
+                  </div>
                 </ScrollArea>
               </TabsContent>
               <TabsContent value="searchresults" className="h-full">
-                <ScrollArea className="h-full">
-                  <div>Search Results Content</div>
-                </ScrollArea>
               </TabsContent>
               <TabsContent value="searchcontext" className="h-full">
-                <ScrollArea className="h-full">
-                  <div>Search Context Content</div>
-                </ScrollArea>
+                <ScrollArea className="h-full"></ScrollArea>
               </TabsContent>
               <TabsContent value="virtualtryon" className="h-full">
-                <ScrollArea className="h-full">
-                  <div>Virtual Tryon Content</div>
-                </ScrollArea>
+                <ScrollArea className="h-full"></ScrollArea>
               </TabsContent>
               <TabsContent value="plan" className="h-full">
-                <ScrollArea className="h-full">
-                  <div>Plan Content</div>
-                </ScrollArea>
+                <ScrollArea className="h-full"></ScrollArea>
               </TabsContent>
             </Tabs>
           </CardContent>
@@ -269,5 +295,13 @@ const ChatInterface: React.FC = () => {
     </div>
   );
 };
+
+<style jsx>{`
+  div {
+    position: fixed;
+    bottom: 0;
+    width: 100%;
+  }
+`}</style>
 
 export default ChatInterface;

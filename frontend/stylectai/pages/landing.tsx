@@ -6,35 +6,26 @@ import UserForm from "@/components/user-form";
 import TitlebarImageList from "@/pages/ImageList";
 import VectorSearch from "@/components/VectorSearch";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
-
 export default function Home() {
   const [recommendedStyles, setRecommendedStyles] = useState<Style[]>([]);
 
-  function handleRecommendations(data) {
+  // Define handleRecommendations function
+  function handleRecommendations(data: Style[]) {
     setRecommendedStyles(data);
   }
   return (
     <div
       className={`${geistSans.className} ${geistMono.className} flex flex-col min-h-screen font-[family-name:var(--font-geist-sans)]`}
     >
-     <div className="flex-1 w-full py-10 px-4 bg-gray-100">
+      <div className="flex-1 w-full py-10 px-4 bg-gray-100">
         <div className="container mx-auto">
           <h1 className="text-3xl font-black font-bold mb-6 text-center">
             Style Recommendations
           </h1>
 
-          <UserForm 
+          <UserForm
             id="recommendation-form"
-            returnRecommendations ={handleRecommendations}
+            returnRecommendations={handleRecommendations}
             className="mb-10"
           />
           <VectorSearch />

@@ -4,14 +4,17 @@ services:
 
   backend:
     image: python:3.10
+    privileged: true
+    restart: always
     volumes:
       - ./backend/server:/app
     working_dir: /app
-    p
-    command: bash -c "pip install /app/crewai-0.118.0.tar.gz && pip install -r requirements.txt && python main.py"
+    user: root
+    command: bash -c "wget https://files.pythonhosted.org/packages/c0/71/5321cd921e783288453c441fe4bbe05c0adefbf95ffa0954df3f3bac34cc/crewai-0.118.0.tar.gz && pip install crewai-0.118.0.tar.gz && pip install -r requirements.txt && python main.py"
     ports:
       - "1500:1500"
     tty: true
+    
     environment:
       OPENAI_MODEL_NAME: ${OPENAI_MODEL_NAME}
       OPENAI_API_KEY: ${OPENAI_API_KEY}
@@ -36,9 +39,6 @@ services:
       - 8080:8080
     environment:
       POSTGRES_USER: stylegen
-      POSTGRES_PASSWORD: stylegen
-      POSTGRES_DB: main
-      POSTGRES_HOST_AUTH_METHOD: trust
       POSTGRES_PASSWORD: stylegen
       POSTGRES_DB: main
       POSTGRES_HOST_AUTH_METHOD: trust
