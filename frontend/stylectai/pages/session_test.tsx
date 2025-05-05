@@ -62,23 +62,24 @@ const ChatInterface: React.FC = () => {
 
     ws.onmessage = (event) => {
       const data = JSON.parse(event.data);
-      console.log(event);
+      console.log("Received data:", data.message.response);
       setMessages(prev => [...prev, {
         role: 'system',
-        content: data.message,
+        content: data?.message?.response || "No response received",
         timestamp: new Date().toISOString()
       }]);
-      if (data.task_id) {
-        setTaskId(data.task_id);
-      } else if (data.messages) {
-        setMessages(prev => [...prev, {
-          role: 'system',
-          content: data.message,
-          timestamp: new Date().toISOString()
-        }]);
-      } else if (data.achievements) {
-        setTaskResponse(data);
-      }
+      console.log("Updated messages:", messages);
+      // if (data.task_id) {
+      //   setTaskId(data.task_id);
+      // } else if (data.messages) {
+      //   setMessages(prev => [...prev, {
+      //     role: 'system',
+      //     content: data.message.response,
+      //     timestamp: new Date().toISOString()
+      //   }]);
+      // } else if (data.achievements) {
+      //   setTaskResponse(data);
+      // }
     };
 
   }, [taskId]);
@@ -87,6 +88,7 @@ const ChatInterface: React.FC = () => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
+    console.log("Updated messages:", messages);
   }, [messages]);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -116,16 +118,16 @@ const ChatInterface: React.FC = () => {
             <CardTitle>Task Interface</CardTitle>
           </CardHeader>
           <CardContent className="flex-grow flex flex-col w-full h-full">
-            <ScrollArea className="flex-grow w-10 h-full" ref={scrollRef}>
+            <ScrollArea className="flex-grow w-full text-black h-full" ref={scrollRef}>
               <div className="space-y-2 w-full">
                 {messages.map((msg, index) => (
                   <div
-                    key={`\${msg.timestamp}-\${index}`}
+                    key={crypto.randomUUID()}
                     className={`text-\${msg.role === 'user' ? 'right' : 'left'}`}
                   >
                     <div
-                      className={`inline-block p-3 rounded-lg max-w-[80%] \${msg.role === 'user'
-                        ? 'bg-blue-500 text-white rounded-br-sm'
+                      className={`inline-block p-3 rounded-lg w-[280%] text-black \${msg.role === 'user'
+                        ? 'bg-blue-500 text-black rounded-br-sm'
                         : 'bg-gray-200 rounded-bl-sm'
                         }`}
                     >

@@ -47,12 +47,14 @@ instruction_message2 ={"role": "system", "content": """
 }
 
 class Advisor1():
-    def greeting_msg(self):
+    async def greeting_msg(self):
         greeting_instruction= {"role": "system", "content":  "ask the user want he wants to search for"}
             #"You are a helpful assistant. Say Hello to the user, Introduce yourself. Describe the app. Describe how you would like to help him and what the next steps are that you have planned. You need to access the vector DB in the next steps to find outfits and shopping items. the user needs to provide personal data."}
         msg=[instruction_message,greeting_instruction]
         print("...........................................")
-        user_input=asyncio.create_task(self.session.compl_send_await(msg))
+        user_input=await self.session.compl_send_await(msg,model="openrouter_gpt35",args={"max_tokens": 150,"temperature": 0.7,"max_recursion_depth": 10})
+        print("...........................................")
+        print(user_input)
         return user_input    
     
     def __init__(self,session,mcp,websocket,manager,session_id):
@@ -61,7 +63,7 @@ class Advisor1():
         self.websocket = websocket
         self.manager = manager
         self.session_id = session_id
-        user=self.greeting_msg()
+        user=asyncio.create_task(self.greeting_msg())
         print(user)
         
      
