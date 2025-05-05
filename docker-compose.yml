@@ -3,11 +3,13 @@ version: "3.8"
 services:
 
   backend:
-    image: docker.io/jipodhead/crewai_fastapi_litellm:v1
+    image: python:3.10
+#    image: docker.io/jipodhead/crewai_fastapi_litellm:v1
     privileged: true
     restart: always
     volumes:
       - ./backend/server:/app
+      - ./data:/data
     working_dir: /app
     user: root
     command: bash -c "pip install -r requirements.txt && python main.py"

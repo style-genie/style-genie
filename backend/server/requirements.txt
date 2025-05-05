@@ -13,3 +13,5 @@ pathlib
 mysql-connector-python==9.3.0
 langchain==0.3.25 
 langchain-community==0.3.23 
+duckduckgo-search==8.0.1 
+wikipedia==1.4.0 
