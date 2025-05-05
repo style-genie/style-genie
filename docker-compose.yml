@@ -3,14 +3,14 @@ version: "3.8"
 services:
 
   backend:
-    image: python:3.10
+    image: docker.io/jipodhead/crewai_fastapi_litellm:v1
     privileged: true
     restart: always
     volumes:
       - ./backend/server:/app
     working_dir: /app
     user: root
-    command: bash -c "wget https://files.pythonhosted.org/packages/c0/71/5321cd921e783288453c441fe4bbe05c0adefbf95ffa0954df3f3bac34cc/crewai-0.118.0.tar.gz && pip install crewai-0.118.0.tar.gz && pip install -r requirements.txt && python main.py"
+    command: bash -c "pip install -r requirements.txt && python main.py"
     ports:
       - "1500:1500"
     tty: true

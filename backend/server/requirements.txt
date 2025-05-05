@@ -11,3 +11,5 @@ fastapi-sessions==0.3.2
 crewai==0.118.0
 pathlib
 mysql-connector-python==9.3.0
+langchain==0.3.25 
+langchain-community==0.3.23 
