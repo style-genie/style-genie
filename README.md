@@ -73,3 +73,24 @@
 
 ---
 .
+## Quickstart
+
+- clone the repo
+  ```bash
+  git clone https://github.com/style-genie/style-genie
+  ```
+- ```bash
+  cd style-genie
+  ```
+### start the backend
+- ***with docker***
+  - ```bash
+    docker compose up
+    ```
+- ***with local python 3.10***
+  - ```bash
+    cd ./backend/server
+    ```
+  - ```bash
+    python main.py
+    ```
