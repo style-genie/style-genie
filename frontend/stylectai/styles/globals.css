@@ -120,14 +120,7 @@ input {
   width: 100%;
 }
 
-button {
-  padding: 10px;
-  background-color: #4CAF50;
-  color: white;
-  border: none;
-  cursor: pointer;
-  width: 100%;
-}
+
 
 body {
   background: var(--background);

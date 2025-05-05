@@ -19,6 +19,7 @@
     "@radix-ui/react-slot": "^1.2.0",
     "@radix-ui/react-tabs": "^1.1.9",
     "@toolpad/core": "^0.14.0",
+    "add": "^2.0.6",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "compress.js": "^2.1.2",
@@ -30,8 +31,10 @@
     "react-dropzone": "^14.3.8",
     "react-hook-form": "^7.56.0",
     "react-spinners": "^0.16.1",
+    "shadcn": "^2.5.0",
     "shadcn-ui": "^0.9.5",
     "tailwind-merge": "^3.2.0",
+    "textarea": "^0.3.0",
     "yup": "^1.6.1"
   },
   "devDependencies": {

@@ -13,7 +13,7 @@ from src.agent.tools import tools, fetch_elements_from_vector_db, get_json_eleme
 default_provider="openrouter"
 default_model="openrouter_scout"
 # the reason i have this function here is that mcp functions can call this too
-async def compl_send_await(websocket,mcp,manager,session_id,msg,model_id=default_model,args={}):
+async def compl_send_await(websocket,mcp,manager,session_id,msg,model_id=default_model,method_response="request",args={}):
     print(msg)
     question= mcp.completion(
                     messages=msg,
@@ -24,7 +24,8 @@ async def compl_send_await(websocket,mcp,manager,session_id,msg,model_id=default
     # tell the user you want something
     print("\nAsking user for responce about:---------------->\n")
     print(question)
-    asyncio.create_task(manager.send_personal_message(session_id, {"message": question})) 
+    question["method"]=method_response
+    asyncio.create_task(manager.send_personal_message(session_id, {"message": question,"method_response":method_response})) 
     response = await websocket.receive_text()
     print("\nReceived User Response---------------->\n")
     print(response)
@@ -195,8 +196,8 @@ class ModelContextProtocol:
 
 
 class Session():
-    def compl_send_await(self,msg,model,args):
-        resp=compl_send_await(self.websocket,self.mcp,self.manager,self.session_id,msg,model,args)
+    def compl_send_await(self,msg,model,method_response,args):
+        resp=compl_send_await(self.websocket,self.mcp,self.manager,self.session_id,msg,model,method_response,args)
         return resp
     def __init__(self, manager,websocket,session_id, max_tokens=150,temperature=0.7,max_recursion_depth=10):
         self.mcp = ModelContextProtocol(manager,session_id)

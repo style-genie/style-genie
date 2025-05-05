@@ -52,7 +52,7 @@ class Advisor1():
             #"You are a helpful assistant. Say Hello to the user, Introduce yourself. Describe the app. Describe how you would like to help him and what the next steps are that you have planned. You need to access the vector DB in the next steps to find outfits and shopping items. the user needs to provide personal data."}
         msg=[instruction_message,greeting_instruction]
         print("...........................................")
-        user_input=await self.session.compl_send_await(msg,model="openrouter_gpt35",args={"max_tokens": 150,"temperature": 0.7,"max_recursion_depth": 10})
+        user_input=await self.session.compl_send_await(msg,model="openrouter_gpt35",method_response="request", args={"max_tokens": 150,"temperature": 0.7,"max_recursion_depth": 10})
         print("...........................................")
         print(user_input)
         return user_input    
