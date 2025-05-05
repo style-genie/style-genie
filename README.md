@@ -12,7 +12,7 @@
   - Agent Workflows that realisticly simulate a fashion consultant
   - get links from the store
   - outfit creator
-  - agents are picking items based on pricerange, personal filters (eg jackets only) and modifiers (parameters, prompt instruction)
+  - agents are picking items based on pricerange, personal filters (eg jackets only) and modifiers (parameters and prompt instruction)
 - **Add your Data**  
   - **Image Upload:** Analyze a user’s photo for style cues.  
   - **Text Prompt:** Accept natural‑language style descriptions (e.g. “boho summer dress”).
