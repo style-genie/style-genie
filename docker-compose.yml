@@ -16,6 +16,12 @@ services:
       - "1500:1500"
     tty: true
     network_mode: host
+    environment:
+      OPENAI_MODEL_NAME: ${OPENAI_MODEL_NAME}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      OLLAMA_API_KEY: ${OLLAMA_API_KEY}
+      OPENWEBUI_API_KEY: ${OPENWEBUI_API_KEY}
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
 
   db:
     image: postgres:latest
