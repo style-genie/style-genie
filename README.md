@@ -6,8 +6,15 @@
 ---
 
 ## 🚀 Key Features
+- **Recommendation System using AI-Agents**
+- using the latest stack (fastAPI, CrewAI, Langchain)
+- using Userdata, Vectorsearch, Wikipedia, Websearch, Analytics, Scrapaed Data
+- Agent Workflows that realisticly simulate a fashion consultant
+- get links from the store
+- outfit creator
+- agents are picking items based on pricerange, personal filters (eg jackets only) and modifiers (parameters, prompt instruction)
 
-- **Multi‑Modal Input**  
+- **Add your Data**  
   - **Image Upload:** Analyze a user’s photo for style cues.  
   - **Text Prompt:** Accept natural‑language style descriptions (e.g. “boho summer dress”).
   - **Image-Based Analysis:**
@@ -28,13 +35,13 @@
 | Layer               | Technology                                 |
 |---------------------|--------------------------------------------|
 | **Backend API**     | Python · FastAPI ·                         |
-| **AI Models**       | LitELLM + CrewAI                           |
+| **Agents**          | LiteLLM + CrewAI + LangChain               |
 | **Vector Search**   | Pinecone                                   |
 | **Object Storage**  | Appache Ozone (s3 Bucket)                  |
 | **Database**        | Postgres if needed                         |
 | **Virtual Try‑On**  | Flow-Style-VTON                            |
 | **Frontend**        | Next.js · React                            |
-| **DevOps**          | GH Actions                                 |
+| **DevOps**          | GH Actions - Docker Compose                |
 
 ---
 
