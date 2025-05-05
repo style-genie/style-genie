@@ -91,7 +91,14 @@ const ChatInterface: React.FC = () => {
     romantic:0,
     chic:0,
   });
-  const registry = {
+  interface Registry {
+    [key: string]: {
+      setter: React.Dispatch<React.SetStateAction<boolean | string>>;
+      accessor: boolean | string;
+    };
+  }
+
+  const registry: Registry = {
     outfits: { setter: setOutfits, accessor: outfits },
     shoes: { setter: setShoes, accessor: shoes },
     trousers: { setter: setTrousers, accessor: trousers },
@@ -250,6 +257,14 @@ userModifiers :<img src='https://www.svgrepo.com/show/471876/settings-04.svg' al
     console.log(`Filtering users by: ${filter}`);
   };
 
+  function updateModifier(key,value){
+  setUserModifiers(prevModifiers => ({
+    ...prevModifiers,
+    [key]: value
+  }));
+    console.log(userModifiers);
+  }
+
   return (
     <div className="flex h-screen bg-gray-100">
       {/* Chat Window */}
@@ -406,7 +421,8 @@ userModifiers :<img src='https://www.svgrepo.com/show/471876/settings-04.svg' al
                         min="0"
                         max="100"
                         value={userModifiers[key]}
-                        onChange={(e) => updateState('userModifiers', {...userModifiers, [key]: parseInt(e.target.value)})}
+                        onChange={(e) => updateModifier(key,parseInt(e.target.value))}
+                      
                       />
                     </div>
                   ))}
