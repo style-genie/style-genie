@@ -25,7 +25,7 @@ services:
       POSTGRES_USER: stylegen
       POSTGRES_PASSWORD: stylegen
       POSTGRES_DB: main
-  network_mode: host
+    network_mode: host
 
   admin:
     image: adminer
