@@ -3,37 +3,43 @@ logger = logging.getLogger(__name__)
 import litellm
 import json
 import subprocess
+import time
 import os
 import sys
 from pathlib import Path
 from dotenv import dotenv_values
 import asyncio
+from uuid import uuid4
+from uuid import UUID
+
 from src.agent.workflows.advisor1 import Advisor1
 from src.agent.tools import tools, fetch_elements_from_vector_db, get_json_element_by_id,init_user_database, read_user_data, write_user_data
 default_provider="openrouter"
 default_model="openrouter_scout"
+
+
+config = dotenv_values(Path(__file__).parent.parent.parent / ".env")
+for key, value in config.items():
+    os.environ[key] = value
 # the reason i have this function here is that mcp functions can call this too
-async def compl_send_await(websocket,mcp,manager,session_id,msg,model_id=default_model,method_response="request",args={}):
-    print(msg)
-    question= mcp.completion(
+
+def send(manager,session_id,msg,name,method_response="request"):
+    body= {"message": msg,"uuid":name,"method_response":method_response}
+    print("\Sending MSG to user:---------------->\n")
+    print(body)
+    asyncio.create_task(manager.send_personal_message(session_id,body)) 
+def compl_send(mcp,manager,session_id,msg,id,model_id=default_model,method_response="request",args={}):
+    completion= mcp.completion(
                     messages=msg,
                     model=model_id,
                     args=args
                 )
-    
-    # tell the user you want something
-    print("\nAsking user for responce about:---------------->\n")
-    print(question)
-    question["method"]=method_response
-    asyncio.create_task(manager.send_personal_message(session_id, {"message": question,"method_response":method_response})) 
-    response = await websocket.receive_text()
-    print("\nReceived User Response---------------->\n")
-    print(response)
-    return response  
+    print("\Sending completion to user:---------------->\n")
+    print(completion)
+    send(manager,session_id,completion,id,method_response,args)
+    return completion  
   
-config = dotenv_values(Path(__file__).parent.parent.parent / ".env")
-for key, value in config.items():
-    os.environ[key] = value
+
 
 
 class ModelContextProtocol:
@@ -81,6 +87,9 @@ class ModelContextProtocol:
         if GEMINI_API_KEY != "":
             self.register_provider("gemini",GEMINI_HOST,GEMINI_API_KEY,"gemini")
     
+    
+    # this function should get normalised for general use.
+    # all those models should not get registered inside
     def register_provider(self, host_type, host_url, api_key,provider, arguments={}):
         """Registers a host after the server has started."""
         print(f"Registering {provider} host: {host_url}")
@@ -192,27 +201,130 @@ class ModelContextProtocol:
         # json_response["step"] = step+1
         return {"response":response_message,"messages":messages}
 
-
-
-
-class Session():
+class Agent():
+    def init(self, session,name, model_id="openrouter_gpt35",args={}):
+        self.session=session
+        self.id(f"{name}_{str(uuid4())}")
+        self.model_id=model_id,
+        self.ready=True
+        self.updating=False
+        self.args=args
+        session.agents[self.id]=self
+    
+    def update():
+        if(!updating):
+            updating=True
+    def receive_msg(self,msg):
+        self.messages.append(msg)
+        self.session.messages.append(resp)
+        update()  
+    def get_messages(self):
+        return self.messages
+    def clear_messages(self):
+        self.messages=[]
+    def compl_send(self,msg,model,method_response):
+        resp=compl_send(self.mcp,self.manager,self.session_id,msg,model,method)
+        self.session.messages.append(resp)  
+        return resp
     def compl_send_await(self,msg,model,method_response,args):
         resp=compl_send_await(self.websocket,self.mcp,self.manager,self.session_id,msg,model,method_response,args)
+        self.session.messages.append(resp)  
         return resp
+    
+
+class ContextRegistry():
+    def __init__(self,session):
+        self.session=session
+        self.agentMessages=[]
+        self.toolCalls=[]
+        self.userMessages=[]
+        self.crewMessages=[]
+        self.plan=""
+        self.important_notes=""
+        self.userData={}
+    def register_agent(self,agent):
+        self.agents[agent.id]=agent
+    def get_agent(self,id):
+        return self.agents[id]
+    def get_agents(self):
+        return self.agents
+
+class MessageManager()
+    async def listener(self):
+        try:
+            while True:
+                    asyncio.sleep(10)
+                    msg= await self.websocket.receive_text()
+                    print(msg)
+                    msg=json.loads(msg)
+                    print(msg)
+                    uuid=msg.uuid
+                    msg=msg.msg
+                    method_response=msg.method
+                    if(method_response=="response"):
+                        self.manager.respondMsgs[uuid]=msg
+                    elif(method_response=="updateUserSettings"):
+                        self.user_data=msg
+                
+        except Exception as e:
+            print(e)
+            asyncio.sleep(1)
+    def init(self,manager):
+        self.manager=manager
+        self.task=asyncio.create_task(self.listener())
+        
+    def stop(self):
+        self.task.cancel()
+        self.task=None
+        print("listener stopped")
+
+class Session():
     def __init__(self, manager,websocket,session_id, max_tokens=150,temperature=0.7,max_recursion_depth=10):
         self.mcp = ModelContextProtocol(manager,session_id)
         self.manager = manager
         self.websocket = websocket
         self.session_id = session_id
         self.models = self.mcp.models
-        self.history = []
-        self.max_tokens = max_tokens
-        self.temperature = temperature
         self.max_recursion_depth = max_recursion_depth
-        
-        flow = Advisor1(session=self,mcp=self.mcp,websocket=self.websocket,manager=self.manager,session_id=self.session_id)
+        self.messageManager=MessageManager()        
+        #flow = Advisor1(session=self,mcp=self.mcp,websocket=self.websocket,manager=self.manager,session_id=self.session_id)
         result =  flow
         print(f"Generated fun fact: {result}")
+
+
+
+
+
+# async def compl_send_await(websocket,mcp,manager,session_id,msg,model_id=default_model,method_response="request",args={}):
+#     print(msg)
+#     question= mcp.completion(
+#                     messages=msg,
+#                     model=model_id,
+#                     args=args
+#                 )
+#     name=str(uuid4())
+#     # tell the user you want something
+#     print("\nAsking user for responce about:---------------->\n")
+    
+#     manager.respondMsgs[name]=None
+#     question["method"]=method_response
+#     asyncio.create_task(manager.send_personal_message(session_id, {"message": question,"uuid":name,"method_response":method_response})) 
+
+#     print(f"question: {question} task: {name}")#question)
+#     while True:
+#         if(manager.respondMsgs[name] is not None):
+#             response = manager.respondMsgs[name]
+#             print("\nReceived User Response---------------->\n")
+#             print(response)
+#             break
+#         else:
+#             print(f"waiting for response of task: {name} - msg: {msg}")
+#         time.sleep(10); 
+#     return response  
+  
+
+
+
 
 # database_manager:
 #   role: >

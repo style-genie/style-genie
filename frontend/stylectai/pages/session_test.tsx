@@ -47,6 +47,7 @@ interface TaskResponse {
 
 const ChatInterface: React.FC = () => {
   const [messages, setMessages] = useState<Message[]>([]);
+  const [responseIds, setResponseIds] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [status, setStatus] = useState('thinking');
   const [agentMessage, setAgentMessage] = useState('');
@@ -91,14 +92,7 @@ const ChatInterface: React.FC = () => {
     romantic:0,
     chic:0,
   });
-  interface Registry {
-    [key: string]: {
-      setter: React.Dispatch<React.SetStateAction<boolean | string>>;
-      accessor: boolean | string;
-    };
-  }
-
-  const registry: Registry = {
+  const registry = {
     outfits: { setter: setOutfits, accessor: outfits },
     shoes: { setter: setShoes, accessor: shoes },
     trousers: { setter: setTrousers, accessor: trousers },
@@ -176,6 +170,8 @@ userModifiers :<img src='https://www.svgrepo.com/show/471876/settings-04.svg' al
       "userImages":userImages,
       "userStyle":userStyle,
     }
+    client.current?.send({"data":obj,"uuid":0,"mehod":"updateUserSettings"});
+
   }
 
   // eg outfits -> shoes -> hash-value -> {image:https://...,description:"...",link:"https://..."}
@@ -197,22 +193,23 @@ userModifiers :<img src='https://www.svgrepo.com/show/471876/settings-04.svg' al
       const data = JSON.parse(event.data)
       
       const message = data.message.response
-      console.log("Received data:", message);
+      console.log("Received data:", data);
       const method  = data.method_response
       console.log("Received method:", method);
-
+      const time=new Date().toISOString()
       if(method=="request"){
         setStatus('request');
-        
+        const id  = data.uuid
+        setResponseIds(responseIds.push(id));
         setMessages(prev => [...prev, {
           role: 'agent_meta',
-          content: 'Agent is thinking...',
-          timestamp: new Date().toISOString(),
+          content: 'Agent has a question for you',
+          timestamp: time,
         },
         {
         role: 'agent',
         content: message || "No response received",
-        timestamp: new Date().toISOString(),
+        timestamp: time,
         
       }]);
       console.log("Updated messages:", messages);
@@ -242,13 +239,18 @@ userModifiers :<img src='https://www.svgrepo.com/show/471876/settings-04.svg' al
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim()) return;
-    client.current?.send(input);
+    const id = responseIds.length>0 ? responseIds[0]: 'guest';
+    client.current?.send({"msg":input,"uuid":id, method:"response"});
+    if(responseIds.length>1){
+      setResponseIds(responseIds.slice(1));  
+    }
+    
+
     setMessages(prev => [...prev, {
       role: 'user',
       content: input,
       timestamp: new Date().toISOString()
     }]);
-
     setInput('');
   };
 

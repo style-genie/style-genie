@@ -58,6 +58,26 @@ class Advisor1():
         return user_input    
     
     def __init__(self,session,mcp,websocket,manager,session_id):
+        """
+        Initialize the Advisor1 instance.
+
+        Parameters
+        ----------
+        session : Session
+            The session object that is used to communicate with the user.
+        mcp : ModelContextProtocol
+            The ModelContextProtocol object that is used to communicate with the models.
+        websocket : WebSocket
+            The websocket object that is used to communicate with the user.
+        manager : Manager
+            The Manager object that is used to manage the sessions.
+        session_id : str
+            The session id of the user.
+
+        Returns
+        -------
+        None
+        """
         self.session = session
         self.mcp = mcp
         self.websocket = websocket

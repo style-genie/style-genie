@@ -88,10 +88,11 @@ class Task:
     
 # ----------> WEBSOCKET MANAGER <----------
 class ConnectionManager:
+    
     def __init__(self):
         self.active_connections: Dict[str, WebSocket] = {}
         self.tasks: Dict[str, Task] = {}
-
+        self.respondMsgs={}
     async def connect(self, websocket: WebSocket, session_id: str):
         await websocket.accept()
         self.active_connections[session_id] = websocket
@@ -101,6 +102,8 @@ class ConnectionManager:
             del self.active_connections[session_id]
 
     async def send_personal_message(self, session_id: str, message: dict):
+        print("Sending personal message to", session_id)
+        print(message)
         if session_id in self.active_connections:
             await self.active_connections[session_id].send_json(message)
         else:
@@ -111,11 +114,15 @@ class ConnectionManager:
         for ws in self.active_connections.values():
             await ws.send_json(update)
 
-    async def receive_text(self, websocket: WebSocket):
+    async def receive_text(self, uuid, websocket: WebSocket):
         """Receives text from the WebSocket in a parallel async task and returns a promise."""
         try:
-            data = await websocket.receive_text()
-            return data
+            
+                self.respondMsgs[uuid   ]=None
+                response= await websocket.receive_text()
+                resp_name=response.uuid
+                self.respondMsgs[uuid]!=None=response.msg
+
         except WebSocketDisconnect:
             return None
 manager = ConnectionManager()
