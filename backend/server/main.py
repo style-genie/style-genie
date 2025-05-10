@@ -155,6 +155,8 @@ def create_agent_session(manager,websocket, session_id, args={}):
     """
     session = Session(manager,websocket, session_id=session_id, **args)
     Sessions.append(session)
+    print("the session",dir(session))
+
     
 @app.websocket("/ws/{session_id}")
 async def websocket_endpoint(websocket: WebSocket, session_id: str):
@@ -184,6 +186,7 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str):
     except Exception as e:
         logger.error(f"Error creating agent session: {e}")
         manager.disconnect(session_id)
+
 
 
 # ------> Compose  <------

@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Style } from "@/lib/types";
 import UserForm from "@/components/user-form";
 import TitlebarImageList from "@/pages/ImageList";
-import VectorSearch from "@/components/VectorSearch";
+// import VectorSearch from "@/components/VectorSearch";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -19,7 +19,7 @@ const geistMono = Geist_Mono({
 export default function Home() {
   const [recommendedStyles, setRecommendedStyles] = useState<Style[]>([]);
 
-  function handleRecommendations(data) {
+  function handleRecommendations(data:any) {
     setRecommendedStyles(data);
   }
   return (
@@ -37,7 +37,7 @@ export default function Home() {
             returnRecommendations ={handleRecommendations}
             className="mb-10"
           />
-          <VectorSearch />
+          {/* <VectorSearch /> */}
 
           {recommendedStyles.length > 0 ? (
             <TitlebarImageList recommendations={recommendedStyles}></TitlebarImageList>
